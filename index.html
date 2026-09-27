@@ -783,11 +783,12 @@
         }
     }
     
-    // Call init before anything else
-    initPWA().then(() => {
-        // Start polling if we have a base (or if local)
-        pollState();
-        // setInterval moved to initPWA()
+    // Call init after DOM is ready (body must exist for modal)
+    document.addEventListener('DOMContentLoaded', () => {
+        initPWA().then(() => {
+            // Start polling if we have a base (or if local)
+            if (typeof pollState === 'function') pollState();
+        });
     });
 </script>
 <script>
