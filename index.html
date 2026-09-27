@@ -662,13 +662,12 @@
     let API_BASE = "";
     
     // Intercept Fetch API to prepend API_BASE
-    const originalFetch = window.fetch;
-    window.fetch = async function() {
-        let args = Array.prototype.slice.call(arguments);
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async function(...args) {
         if (typeof args[0] === 'string' && args[0].startsWith('/api/')) {
             args[0] = API_BASE + args[0];
         }
-        return originalFetch.apply(this, args);
+        return originalFetch(...args);
     };
 
     // Helper for media sources
@@ -1336,7 +1335,9 @@ function toggleStream() {
                 }
 
             } catch (e) {
-                document.getElementById("title").innerText = e.message; document.getElementById("artist").innerText = e.stack; console.error("Fetch state error:", e);
+                document.getElementById("title").innerText = "連線失敗 (主機無回應)"; 
+                document.getElementById("artist").innerHTML = `<button onclick="localStorage.removeItem('wajiabar_device_id'); location.href=location.pathname;" style="padding:6px 12px;background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:5px;font-size:12px;">重新輸入配對碼</button>`;
+                console.error("Fetch state error:", e);
             }
         }
 
