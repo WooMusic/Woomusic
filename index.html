@@ -8,7 +8,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Wajiabar3000">
-    <link rel="apple-touch-icon" href="/api/icon">
+    <link rel="apple-touch-icon" href="icon.ico" id="apple-icon">
+<script>document.getElementById("apple-icon").href = (window.API_BASE || "") + "/api/icon";</script>
     <style>
 
         * {
@@ -1039,7 +1040,7 @@ const ICONS = {
                 const data = await res.json();
                 if (data.current_track && data.current_track.title !== currentTrackTitle) {
                     currentTrackTitle = data.current_track.title;
-                    elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                     elAudio.play().catch(e => console.log("Bg play failed:", e));
                 } else {
                     // Server hasn't switched yet, check again in 1s
@@ -1063,7 +1064,7 @@ function toggleStream() {
                 if(lbl) lbl.style.color = 'var(--accent)';
                 if(volContainer) volContainer.style.display = 'none';
                 elAudio.volume = 1.0;
-                elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                 elAudio.currentTime = elProgress.value / 1000;
                 elAudio.play().catch(e => console.log(e));
                 sendCommand('set_mute', true);
@@ -1142,7 +1143,7 @@ function toggleStream() {
                         if(lbl) lbl.style.color = 'var(--accent)';
                         if(volContainer) volContainer.style.display = 'none';
                         elAudio.volume = 1.0;
-                        elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                         if (data.is_playing) elAudio.play().catch(e => console.log(e));
                     } else {
                         if(lbl) lbl.style.color = 'var(--text-main)';
@@ -1166,7 +1167,7 @@ function toggleStream() {
                     updateSleepTimerUI();
 
                     if (isStreaming) {
-                        elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                         if (data.is_playing) elAudio.play().catch(e => {});
                     }
                 }
