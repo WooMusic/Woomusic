@@ -676,6 +676,76 @@
         return API_BASE + path;
     }
 
+    // --- Pairing Modal UI ---
+    function showPairingModal() {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--bg,#000);display:flex;align-items:center;justify-content:center;flex-direction:column;';
+            overlay.innerHTML = `
+                <div style="text-align:center;padding:32px 24px;max-width:340px;width:90%;">
+                    <div style="margin-bottom:24px;">
+                        <img src="icon.ico" style="width:56px;height:56px;border-radius:12px;" onerror="this.style.display='none'">
+                    </div>
+                    <h2 style="color:var(--text-main,#fff);font-size:20px;font-weight:800;margin-bottom:8px;">Wajiabar3000</h2>
+                    <p style="color:var(--text-sub,#a0a0a0);font-size:14px;margin-bottom:28px;line-height:1.5;">請輸入電腦上顯示的<br>6 位數遙控配對碼</p>
+                    <input id="pairInput" type="text" maxlength="6" autocomplete="off" spellcheck="false"
+                        style="width:100%;padding:14px;font-size:24px;font-weight:900;letter-spacing:8px;text-align:center;
+                        background:var(--card-bg,#1a1a1a);color:var(--text-main,#fff);border:2px solid var(--border,#333);
+                        border-radius:12px;outline:none;text-transform:uppercase;caret-color:var(--accent,#38bdf8);"
+                        placeholder="──────">
+                    <button id="pairBtn" disabled
+                        style="width:100%;margin-top:16px;padding:14px;font-size:16px;font-weight:700;
+                        background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;
+                        opacity:0.4;cursor:not-allowed;transition:opacity 0.2s;">
+                        連線
+                    </button>
+                </div>`;
+            document.body.appendChild(overlay);
+            
+            const input = overlay.querySelector('#pairInput');
+            const btn = overlay.querySelector('#pairBtn');
+            
+            input.focus();
+            input.addEventListener('input', () => {
+                const valid = input.value.trim().length === 6;
+                btn.disabled = !valid;
+                btn.style.opacity = valid ? '1' : '0.4';
+                btn.style.cursor = valid ? 'pointer' : 'not-allowed';
+                input.style.borderColor = valid ? 'var(--accent,#38bdf8)' : 'var(--border,#333)';
+            });
+            
+            const submit = () => {
+                const val = input.value.trim();
+                if (val.length === 6) {
+                    overlay.remove();
+                    resolve(val);
+                }
+            };
+            
+            btn.addEventListener('click', submit);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+        });
+    }
+    
+    function showPairingError(msg) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:var(--bg,#000);display:flex;align-items:center;justify-content:center;';
+            overlay.innerHTML = `
+                <div style="text-align:center;padding:32px 24px;max-width:320px;width:90%;">
+                    <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+                    <p style="color:var(--text-main,#fff);font-size:15px;font-weight:600;line-height:1.6;white-space:pre-line;margin-bottom:24px;">${msg}</p>
+                    <button style="width:100%;padding:14px;font-size:15px;font-weight:700;
+                        background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;cursor:pointer;">
+                        重新輸入
+                    </button>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('button').addEventListener('click', () => { overlay.remove(); resolve(); });
+        });
+    }
+    // --- End Pairing Modal ---
+
     async function initPWA() {
         const urlParams = new URLSearchParams(window.location.search);
         let deviceId = urlParams.get('id') || localStorage.getItem('wajiabar_device_id');
@@ -688,7 +758,7 @@
 
         if (isExternal) {
             if (!deviceId) {
-                deviceId = prompt("歡迎來到 Wajiabar3000！\n請輸入電腦上顯示的 6 位數遙控機碼：");
+                deviceId = await showPairingModal();
                 if (deviceId) {
                     deviceId = deviceId.toUpperCase().trim();
                     localStorage.setItem('wajiabar_device_id', deviceId);
@@ -702,10 +772,12 @@
                         API_BASE = data.url;
                         console.log("Found backend:", API_BASE);
                     } else {
-                        alert("找不到主機！請確認電腦端的 Wajiabar3000 已開啟並連上網路。");
+                        localStorage.removeItem('wajiabar_device_id');
+                        await showPairingError("找不到此機碼對應的主機\n請確認電腦端已開啟 Wajiabar3000");
+                        location.reload();
                     }
                 } catch (e) {
-                    alert("連線尋呼機失敗，請檢查網路。");
+                    await showPairingError("連線失敗，請檢查網路連線");
                 }
             }
         }
