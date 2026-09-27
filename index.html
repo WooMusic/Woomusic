@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wajiabar3000</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wajiabar3000">
+    <link rel="apple-touch-icon" href="/api/icon">
+    <style>
+
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+
+        :root {
+            /* 預設為闇黑模式 */
+            --accent: #38bdf8;
+            --bg: #000000;
+            --card-bg: #1a1a1a;
+            --text-main: #ffffff;
+            --text-sub: #a0a0a0;
+            --border: #333333;
+            --nav-bg: #111111;
+            --nav-active: #ffffff;
+            --nav-inactive: #666666;
+            --overlay-bg: rgba(0,0,0,0.85);
+            --drawer-bg: #1a1a1a;
+            --toast-bg: #333333;
+            --btn-bg: #222222;
+        }
+        
+        [data-theme="light"] {
+            --accent: #0284c7;
+            --bg: #f4f4f5;
+            --card-bg: #ffffff;
+            --text-main: #18181b;
+            --text-sub: #52525b;
+            --border: #e4e4e7;
+            --nav-bg: #ffffff;
+            --nav-active: #18181b;
+            --nav-inactive: #a1a1aa;
+            --overlay-bg: rgba(255,255,255,0.85);
+            --drawer-bg: #ffffff;
+            --toast-bg: #ffffff;
+            --btn-bg: #e4e4e7;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        
+        /* Apple toggle switch */
+        .apple-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+        }
+        .apple-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .apple-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--border);
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .apple-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-main);
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .apple-slider {
+            background-color: var(--accent);
+        }
+        input:checked + .apple-slider:before {
+            transform: translateX(20px);
+        }
+        
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-bg); z-index: 99; display: none;
+        }
+        .drawer-overlay.open { display: block; }
+        .drawer {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            background: var(--nav-bg);
+            ;
+            border-top: 1px solid var(--border);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -10px 40px var(--overlay-bg);
+            z-index: 101;
+            bottom: 0;
+            height: 80vh;
+        }
+
+        /* Dynamic Blurred Background */
+        
+        
+        .main-view-old {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            flex-grow: 1;
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .main-view.shifted {
+            transform: translateY(-40px);
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        .header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+        }
+
+        .header h2 {
+            font-size: 16px;
+            color: var(--text-main);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 0 2px 10px var(--overlay-bg);
+        }
+
+        .btn-top {
+            background: var(--border);
+            border: none;
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+            ;
+        }
+
+        .btn-top:active {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-top svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .cover-container {
+            width: 280px;
+            height: 280px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px var(--overlay-bg);
+            overflow: hidden;
+            background-color: var(--card-bg);
+            position: relative;
+        }
+        .cover-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s;
+        }
+        
+        .info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 10px;
+        }
+        .text-group {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 2px 10px var(--overlay-bg);
+        }
+        .artist {
+            font-size: 16px;
+            color: var(--text-sub);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn-fav {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .btn-fav.active {
+            color: #ec4899;
+        }
+        .btn-fav svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .progress-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 10px;
+        }
+        .progress-bar {
+            width: 100%;
+            -webkit-appearance: none;
+            background: var(--border);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        .progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--text-main);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+        
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+        }
+        .btn {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn:active {
+            background: var(--border);
+            transform: scale(0.9);
+        }
+        .btn svg {
+            width: 44px;
+            height: 44px;
+        }
+        .btn-play {
+            width: 80px;
+            height: 80px;
+            background: var(--text-main);
+            color: var(--bg);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .btn-play:active {
+            background: #e2e8f0;
+        }
+        .btn-play svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .volume-container {
+            width: 85%;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .volume-slider-wrapper {
+            width: 100%;
+            height: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .volume-slider-wrapper input {
+            width: 100%;
+            height: 6px;
+        }
+        .volume-icon {
+            color: var(--text-sub);
+            display: flex;
+        }
+        .volume-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Playlist Drawer */
+        .playlist-drawer-old {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 70vh;
+            background: var(--drawer-bg);
+            ;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            box-shadow: 0 -10px 40px var(--overlay-bg);
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .playlist-drawer.open {
+            bottom: 0;
+        }
+        .drawer-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-bg);
+        }
+        .drawer-title {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .btn-close {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .playlist-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .track-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .track-item:active {
+            background: var(--border);
+        }
+        .track-item.playing {
+            background: var(--btn-bg);
+        }
+        .track-idx {
+            width: 30px;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+        .track-item.playing .track-idx {
+            color: var(--text-main);
+        }
+        .track-info-list {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .track-title-list {
+            font-size: 15px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .track-item.playing .track-title-list {
+            color: var(--text-main);
+            font-weight: bold;
+        }
+        .track-artist-list {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bottom-tools {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            background: var(--card-bg);
+            padding: 14px 28px;
+            border-radius: 16px;
+            width: auto;
+            align-self: center;
+            margin-top: 20px;
+            ;
+        }
+        .bottom-tools .btn-top svg {
+            width: 28px;
+            height: 28px;
+        }
+        /* Global Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--toast-bg);
+            color: var(--text-main);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            ;
+            border: 1px solid var(--border);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* FAB */
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        .fab-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px) scale(0.9);
+            transition: all 0.2s ease;
+            transform-origin: bottom right;
+        }
+        .fab-menu.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+        .fab-menu button {
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            ;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        .fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: black;
+            border: none;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .fab:active {
+            transform: scale(0.9);
+        }
+
+        /* Search Bar */
+        .search-bar {
+            width: 100%;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .search-bar::placeholder {
+            color: var(--text-sub);
+        }
+    
+/* New Views and Bottom Nav */
+.view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    transform: translateY(10px);
+    z-index: 10;
+}
+.view.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: var(--nav-bg);
+    ;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid var(--card-bg);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-sub);
+    font-size: 10px;
+    gap: 4px;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+    width: 25%;
+}
+.nav-item:active {
+    transform: scale(0.9);
+}
+.nav-item.active {
+    color: var(--accent);
+}
+.nav-item svg {
+    width: 24px;
+    height: 24px;
+}
+.settings-section {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-bg);
+}
+.settings-row:last-child {
+    border-bottom: none;
+}
+/* Hide FAB conditionally based on active view */
+.fab-container {
+    bottom: 80px; /* Above bottom nav */
+    transition: opacity 0.3s, transform 0.3s;
+}
+.fab-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+}
+
+    
+        input[type="text"], input[type="number"], .search-bar {
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
+            user-select: auto;
+        }
+</style>
+
+<script>
+    // --- Smart PWA Discovery ---
+    let API_BASE = "";
+    
+    // Intercept Fetch API to prepend API_BASE
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let args = Array.prototype.slice.call(arguments);
+        if (typeof args[0] === 'string' && args[0].startsWith('/api/')) {
+            args[0] = API_BASE + args[0];
+        }
+        return originalFetch.apply(this, args);
+    };
+
+    // Helper for media sources
+    function getApiUrl(path) {
+        return API_BASE + path;
+    }
+
+    async function initPWA() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let deviceId = urlParams.get('id') || localStorage.getItem('wajiabar_device_id');
+        
+        // If we are not running on the local server or cloudflare directly, we are an external PWA
+        const isExternal = window.location.protocol === 'file:' || 
+                          (window.location.hostname !== '127.0.0.1' && 
+                           window.location.hostname !== 'localhost' && 
+                           !window.location.hostname.includes('trycloudflare.com'));
+
+        if (isExternal) {
+            if (!deviceId) {
+                deviceId = prompt("歡迎來到 Wajiabar3000！\n請輸入電腦上顯示的 6 位數遙控機碼：");
+                if (deviceId) {
+                    deviceId = deviceId.toUpperCase().trim();
+                    localStorage.setItem('wajiabar_device_id', deviceId);
+                }
+            }
+            if (deviceId) {
+                try {
+                    const res = await originalFetch('https://wajiabar3000-default-rtdb.firebaseio.com/devices/' + deviceId + '.json');
+                    const data = await res.json();
+                    if (data && data.url) {
+                        API_BASE = data.url;
+                        console.log("Found backend:", API_BASE);
+                    } else {
+                        alert("找不到主機！請確認電腦端的 Wajiabar3000 已開啟並連上網路。");
+                    }
+                } catch (e) {
+                    alert("連線尋呼機失敗，請檢查網路。");
+                }
+            }
+        }
+    }
+    
+    // Call init before anything else
+    initPWA().then(() => {
+        // Start polling if we have a base (or if local)
+        pollState();
+        // setInterval moved to initPWA()
+    });
+</script>
+<script>
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    if (msg.includes('Script error.')) return false;
+    if (msg.includes('network')) return false;
+    if (msg.includes('fetch')) return false;
+    console.error('GLOBAL ERROR: ' + msg + '\nLine: ' + lineNo + '\nCol: ' + columnNo);
+    return false;
+};
+</script>
+</head>
+
+<body>
+    <audio id="silent-audio"></audio>
+    
+
+    <!-- VIEW 1: PLAYER -->
+    <div id="view-player" class="view active" style="padding-top: max(20px, env(safe-area-inset-top)); display: flex; flex-direction: column; align-items: center; justify-content: flex-start;">
+        <div class="header" style="justify-content: flex-start; width: 100%;">
+            <h2>
+                <img src="/api/icon" style="width:24px; height:24px; border-radius:4px; object-fit: contain; margin-right: 4px;">
+                Wajiabar3000 <span id="mode-toast" style="font-size: 14px; color: var(--accent); opacity: 0; transition: opacity 0.3s; margin-left: 8px;"></span>
+            </h2>
+        </div>
+        <div class="toolbar" style="display: flex; gap: 15px; align-items: center; justify-content: center; margin-bottom: 25px; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: var(--card-bg); padding: 8px 12px; border-radius: 20px;" onclick="toggleStream()">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-main);" id="lbl-stream">手機播放</span>
+                <label class="apple-switch" style="pointer-events: none; margin: 0;">
+                    <input type="checkbox" id="stream-checkbox">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+            <button class="btn-top" onclick="sendCommand('cycle_mode')" id="btn-mode" style="background: var(--card-bg); border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center;">
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width: 20px; height: 20px;"><path d="M4 11h16v2H4zm0-4h16v2H4zm0 8h10v2H4z"/></svg>
+            </button>
+        </div>
+
+        <div class="cover-container">
+            <img id="cover" class="cover-image" src="/api/cover" onerror="this.style.display='none'">
+        </div>
+        
+        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px;">
+            <div class="text-group">
+                <div id="title" class="title">讀取中...</div>
+                <div id="artist" class="artist">等待連接</div>
+            </div>
+            <button class="btn-fav" id="btn-fav" onclick="sendCommand('toggle_favorite')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+        </div>
+        
+        <div class="progress-container" style="flex-shrink: 0; width: 85%; max-width: 400px; margin-top: 20px;">
+            <input type="range" id="progress" class="progress-bar" min="0" max="100" value="0">
+            <div class="time-labels">
+                <span id="time-current">0:00</span>
+                <span id="time-total">0:00</span>
+            </div>
+        </div>
+
+        <div class="controls" style="flex-shrink: 0; padding-bottom: 20px; width: 85%; max-width: 400px; display: flex; justify-content: space-evenly;">
+            <button class="btn" onclick="sendCommand('prev')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button id="btn-play" class="btn btn-play" onclick="sendCommand('toggle_play')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="btn" onclick="sendCommand('next')">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+        </div>
+
+        <div class="volume-container">
+            <span class="volume-icon" style="margin-top: 5px;">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            </span>
+            <div class="volume-slider-wrapper">
+                <input type="range" id="volume" class="progress-bar" min="0" max="100" value="50">
+            </div>
+            <span class="volume-icon" style="margin-bottom: 5px;">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            </span>
+        </div>
+    </div>
+
+    <!-- VIEW 2: QUEUE -->
+    <div id="view-queue" class="view" style="padding-top: env(safe-area-inset-top);">
+        <div style="padding: 20px 20px 10px; font-size: 24px; font-weight: bold; display: flex; align-items: baseline; gap: 8px;">當前佇列 <span id="current-playlist-name" style="font-size: 16px; font-weight: normal; color: var(--accent);"></span></div>
+        <div id="queue-content" style="padding-bottom: 20px;"></div>
+    </div>
+
+    <!-- VIEW 3: PLAYLISTS -->
+    <div id="view-playlists" class="view" style="padding-top: env(safe-area-inset-top);">
+        <div style="padding: 20px 20px 10px; font-size: 24px; font-weight: bold;">所有播放清單</div>
+        <div id="playlists-content" style="padding-bottom: 20px;"></div>
+    </div>
+
+    <!-- VIEW 4: SETTINGS -->
+    <div id="view-settings" class="view" style="padding: env(safe-area-inset-top) 20px 20px;">
+        <div style="padding: 20px 0; font-size: 24px; font-weight: bold;">設定</div>
+        
+
+
+                <!-- PWA Install Button -->
+        <div class="settings-section" id="pwa-section" style="display: block; cursor: pointer; margin-bottom: 12px;" onclick="installPWA()">
+            <div class="setting-item">
+                <div style="display: flex; align-items: center; justify-content: center; width: 100%; color: var(--accent); font-weight: bold; font-size: 16px; padding: 10px 0;">
+                    <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: currentColor; margin-right: 8px;">
+                        <path d="M17 1H7C5.9 1 5 1.9 5 3V21C5 22.1 5.9 23 7 23H17C18.1 23 19 22.1 19 21V3C19 1.9 18.1 1 17 1ZM17 19H7V5H17V19ZM16 13H13V17H11V13H8L12 9L16 13Z"/>
+                    </svg>
+                    安裝為桌面 App (沉浸體驗)
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">介面主題</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">切換明亮與闇黑模式</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">睡眠定時</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">時間到將自動暫停播放</div>
+                    <div style="font-size: 13px; color: var(--accent); margin-top: 4px;" id="sleep-status">關閉</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <select id="sleep-select" onchange="setSleepTimer(parseInt(this.value))" style="background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px;">
+                        <option value="0">關閉</option>
+                        <option value="5">5 分鐘 (測試用)</option>
+                        <option value="15">15 分鐘</option>
+                        <option value="30">30 分鐘</option>
+                        <option value="45">45 分鐘</option>
+                        <option value="60">60 分鐘</option>
+                        <option value="90">90 分鐘</option>
+                        <option value="120">120 分鐘</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">無縫混音 (Crossfade)</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">歌曲切換時自動淡入淡出 (僅限遙控電腦有效)</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="cf-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div style="font-size: 14px; color: var(--text-main);">混音秒數</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="number" id="cf-duration" onchange="updateAudioSettings()" value="5" min="1" max="20" style="width: 48px; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px; text-align: center;">
+                    <span style="font-size: 14px; color: var(--text-sub);">秒</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">R128 智慧音量平衡</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">自動統一所有歌曲的音量大小 (僅限遙控電腦有效)</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="r128-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchView('player')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            播放中
+        </div>
+        <div class="nav-item" onclick="switchView('queue')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+            佇列
+        </div>
+        <div class="nav-item" onclick="switchView('playlists')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h4v2h-4zm0-6h8v2h-8z"/></svg>
+            清單
+        </div>
+        <div class="nav-item" onclick="switchView('settings')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+            設定
+        </div>
+    </nav>
+
+    <!-- Global Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- FAB -->
+    <div class="fab-container hidden">
+        <div class="fab-menu" id="fab-menu">
+            <button onclick="openFsModal(-1); toggleFabMenu();">+ 新增本機檔案</button>
+            <button onclick="openYtModal(-1); toggleFabMenu();">+ 新增 YouTube</button>
+        </div>
+        <button class="fab" onclick="toggleFabMenu()">+</button>
+    </div>
+
+    <!-- FS Modal -->
+    <div id="fs-modal" class="drawer-overlay" onclick="if(event.target === this) closeFsModal()">
+        <div class="drawer" style="height: 80vh; bottom: 0; padding: 20px 10px; display: flex; flex-direction: column;">
+            <div class="drawer-title">新增本機檔案</div>
+            <div style="font-size:12px; color:#888; margin-bottom:10px;" id="fs-current-path">讀取中...</div>
+            <div style="display: flex; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+                <button class="btn-top" onclick="fsGoUp()" id="fs-up-btn">上一層</button>
+                <button class="btn-top" id="fs-select-all-btn" onclick="fsSelectAll()" style="background: var(--btn-bg); color: var(--text-main); display: none;">全選</button>
+                <button class="btn-top" onclick="addSelectedLocalFiles()" style="background: var(--accent); color: var(--bg);">加入</button>
+            </div>
+            <div id="fs-content" style="flex-grow:1; overflow-y:auto;"></div>
+            <button class="btn-close" onclick="closeFsModal()">關閉</button>
+        </div>
+    </div>
+
+    <!-- YT Modal -->
+    
+    <div id="custom-confirm-modal" class="drawer-overlay" style="z-index: 1000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); width: 85%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-size: 18px; font-weight: bold; text-align: center; color: var(--text-main);">確認操作</div>
+            <div id="custom-confirm-message" style="font-size: 15px; text-align: center; color: var(--text-sub); line-height: 1.5;"></div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button onclick="document.getElementById('custom-confirm-modal').style.display = 'none'; if(window.customConfirmCallback) window.customConfirmCallback(false);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--border); color: var(--text-main); font-weight: bold; cursor: pointer;">取消</button>
+                <button onclick="document.getElementById('custom-confirm-modal').style.display = 'none'; if(window.customConfirmCallback) window.customConfirmCallback(true);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">確定刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="yt-modal" class="drawer-overlay" onclick="if(event.target === this) closeYtModal()">
+        <div class="drawer" style="height: 80vh; bottom: 0; padding: 20px 10px; display: flex; flex-direction: column;">
+            <div class="drawer-title">新增 YouTube</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="text" id="yt-search-input" placeholder="搜尋或貼上網址..." style="flex-grow: 1; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px;">
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <button class="btn-top" onclick="searchYt()" style="flex:1;">搜尋</button>
+                <button class="btn-top" onclick="fetchYtUrl()" style="flex:1;">網址</button>
+                <button class="btn-top" onclick="addSelectedYt()" style="flex:2; background: var(--accent); color: var(--bg);">加入</button>
+            </div>
+            <div id="yt-content" style="flex-grow:1; overflow-y:auto;"></div>
+            <button class="btn-close" onclick="closeYtModal()">關閉</button>
+        </div>
+    </div>
+
+        <script>
+const ICONS = {
+            play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+            pause: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
+            mode_0: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 11h16v2H4zm0-4h16v2H4zm0 8h10v2H4z"/></svg>', // Seq
+            mode_1: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/></svg>', // Repeat 1
+            mode_2: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>', // Repeat All
+            mode_3: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>' // Shuffle
+        };
+
+        const elTitle = document.getElementById('title');
+        const elArtist = document.getElementById('artist');
+        const elCover = document.getElementById('cover');
+        
+        const elProgress = document.getElementById('progress');
+        const elTimeCur = document.getElementById('time-current');
+        const elTimeTot = document.getElementById('time-total');
+        const elBtnPlay = document.getElementById('btn-play');
+        const elBtnMode = document.getElementById('btn-mode');
+        const elBtnFav = document.getElementById('btn-fav');
+        const elVolume = document.getElementById('volume');
+        
+        
+        const elQueueContent = document.getElementById('queue-content');
+        const elPlaylistsContent = document.getElementById('playlists-content');
+
+        let isDraggingProgress = false;
+        let isDraggingVolume = false;
+
+        let currentQueueLength = -1;
+        let localVolumeTimer = null;
+        let currentTrackTitle = "";
+        let currentMode = -1;
+        let currentFav = null;
+        let isPlaying = false;
+
+        function formatTime(ms) {
+            if (!ms || isNaN(ms)) return "0:00";
+            let s = Math.floor(ms / 1000);
+            let m = Math.floor(s / 60);
+            s = s % 60;
+            return m + ":" + (s < 10 ? "0" : "") + s;
+        }
+
+        let mediaSessionInit = false;
+        let isStreaming = false;
+        const elAudio = document.getElementById('silent-audio');
+
+        
+        // --- BACKGROUND AUDIO FIX ---
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('play', () => { sendCommand('resume'); if(isStreaming) elAudio.play(); });
+            navigator.mediaSession.setActionHandler('pause', () => { sendCommand('pause'); if(isStreaming) elAudio.pause(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => sendCommand('prev'));
+            navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
+        }
+
+        elAudio.addEventListener('ended', async () => {
+            if (!isStreaming) return;
+            // When track ends, JS might be suspended on mobile if we don't immediately do something.
+            // Force a state check to get the new track and play it.
+            try {
+                const res = await fetch('/api/state', { cache: 'no-store' });
+                const data = await res.json();
+                if (data.current_track && data.current_track.title !== currentTrackTitle) {
+                    currentTrackTitle = data.current_track.title;
+                    elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                    elAudio.play().catch(e => console.log("Bg play failed:", e));
+                } else {
+                    // Server hasn't switched yet, check again in 1s
+                    setTimeout(pollState, 1000);
+                }
+            } catch(e) {
+                console.log(e);
+            }
+        });
+        
+        // Update MediaSession metadata in pollState
+function toggleStream() {
+            isStreaming = !isStreaming;
+            const cb = document.getElementById('stream-checkbox');
+            const lbl = document.getElementById('lbl-stream');
+            const volContainer = document.querySelector('.volume-container');
+            if(cb) cb.checked = isStreaming;
+            sendCommand('set_streaming_state', isStreaming);
+            
+            if (isStreaming) {
+                if(lbl) lbl.style.color = 'var(--accent)';
+                if(volContainer) volContainer.style.display = 'none';
+                elAudio.volume = 1.0;
+                elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                elAudio.currentTime = elProgress.value / 1000;
+                elAudio.play().catch(e => console.log(e));
+                sendCommand('set_mute', true);
+                showToast('已切換為手機播放 (電腦端靜音)');
+            } else {
+                if(lbl) lbl.style.color = 'var(--text-main)';
+                if(volContainer) volContainer.style.display = 'flex';
+                elAudio.pause();
+                elAudio.src = '';
+                sendCommand('set_mute', false);
+                showToast('已恢復電腦端播放');
+                sendCommand('set_mute', false);
+            }
+        }
+
+        function updateMediaSessionMetadata(data) {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: data.title,
+                    artist: data.artist || '未知歌手',
+                    album: data.album || 'Wajiabar3000',
+                    artwork: [
+                        { src: getApiUrl('/api/cover?t=') + new Date().getTime(), sizes: '512x512', type: 'image/jpeg' }
+                    ]
+                });
+
+                if (!mediaSessionInit) {
+                    navigator.mediaSession.setActionHandler('play', () => sendCommand('toggle_play'));
+                    navigator.mediaSession.setActionHandler('pause', () => sendCommand('toggle_play'));
+                    navigator.mediaSession.setActionHandler('previoustrack', () => sendCommand('prev'));
+                    navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
+                    // iOS Bluetooth headsets often force 'seek' buttons when audio is looped. Map them to next/prev!
+                    navigator.mediaSession.setActionHandler('seekforward', () => sendCommand('next'));
+                    navigator.mediaSession.setActionHandler('seekbackward', () => sendCommand('prev'));
+                    mediaSessionInit = true;
+                }
+            }
+        }
+
+        function updateMediaSessionPosition(data) {
+            if ('mediaSession' in navigator && data.duration > 0 && data.position >= 0) {
+                try {
+                    navigator.mediaSession.setPositionState({
+                        duration: data.duration / 1000,
+                        playbackRate: data.is_playing ? 1 : 0,
+                        position: data.position / 1000
+                    });
+                } catch(e) {}
+            }
+        }
+
+        
+        function showCustomConfirm(msg) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-confirm-modal');
+                document.getElementById('custom-confirm-message').innerText = msg;
+                modal.style.display = 'flex';
+                window.customConfirmCallback = resolve;
+            });
+        }
+        
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/state', { cache: 'no-store' });
+                const data = await res.json();
+                
+                // Sync streaming toggle state from server
+                if (data.is_streaming !== undefined && isStreaming !== data.is_streaming) {
+                    isStreaming = data.is_streaming;
+                    const cb = document.getElementById('stream-checkbox');
+                    const lbl = document.getElementById('lbl-stream');
+                    const volContainer = document.querySelector('.volume-container');
+                    if(cb) cb.checked = isStreaming;
+                    
+                    if (isStreaming) {
+                        if(lbl) lbl.style.color = 'var(--accent)';
+                        if(volContainer) volContainer.style.display = 'none';
+                        elAudio.volume = 1.0;
+                        elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                        if (data.is_playing) elAudio.play().catch(e => console.log(e));
+                    } else {
+                        if(lbl) lbl.style.color = 'var(--text-main)';
+                        if(volContainer) volContainer.style.display = 'flex';
+                        elAudio.pause();
+                        elAudio.src = '';
+                    }
+                }
+                
+                if (currentTrackTitle !== data.title) {
+                    currentTrackTitle = data.title;
+                    elTitle.innerText = data.title;
+                    elArtist.innerText = data.artist || "未知歌手";
+                    
+                    const coverUrl = getApiUrl('/api/cover?t=') + new Date().getTime();
+                    elCover.src = coverUrl;
+                    elCover.style.display = 'block';
+                    
+                    if (currentView === 'queue') fetchPlaylist();
+                    updateMediaSessionMetadata(data);
+                    updateSleepTimerUI();
+
+                    if (isStreaming) {
+                        elAudio.src = getApiUrl('/api/stream?t=' + encodeURIComponent(currentTrackTitle);
+                        if (data.is_playing) elAudio.play().catch(e => {});
+                    }
+                }
+
+                // Sync streaming audio state
+                if (isStreaming) {
+                    if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
+                    else if (!data.is_playing && !elAudio.paused) elAudio.pause();
+                    
+                    // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
+                    if (!elAudio.seeking && Math.abs((elAudio.currentTime * 1000) - data.position) > 10000) {
+                        elAudio.currentTime = data.position / 1000;
+                    }
+                }
+
+                if (!isDraggingProgress) {
+                    elProgress.max = data.duration || 100;
+                    elProgress.value = data.position || 0;
+                    elTimeCur.innerText = formatTime(data.position);
+                    elTimeTot.innerText = formatTime(data.duration);
+                    
+                    // Only update position state occasionally or on play/pause
+                    if (Math.abs(data.position - elProgress.value) > 1000 || !data.is_playing) {
+                         updateMediaSessionPosition(data);
+                    }
+                }
+
+                isPlaying = data.is_playing;
+                elBtnPlay.innerHTML = data.is_playing ? ICONS.pause : ICONS.play;
+                
+                if (currentMode !== data.mode) {
+                    const isInitial = (currentMode === -1);
+                    currentMode = data.mode;
+                    elBtnMode.innerHTML = ICONS['mode_' + (data.mode || 0)] || ICONS.mode_0;
+                    if(currentMode === 0) elBtnMode.style.color = "var(--text-sub)";
+                    else elBtnMode.style.color = "#fff";
+                    
+                    if (!isInitial) {
+                        const modeNames = ["循序播放", "單曲循環", "全部循環", "隨機播放"];
+                        const toast = document.getElementById('mode-toast');
+                        if (toast) {
+                            toast.innerText = "(" + (modeNames[data.mode] || "") + ")";
+                            toast.style.opacity = 1;
+                            clearTimeout(window.modeToastTimer);
+                            window.modeToastTimer = setTimeout(() => { toast.style.opacity = 0; }, 1500);
+                        }
+                    }
+                }
+
+                if (currentFav !== data.is_favorite) {
+                    currentFav = data.is_favorite;
+                    if (currentFav) {
+                        elBtnFav.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="#f87171"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                    } else {
+                        elBtnFav.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" fill="#cbd5e1"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>`;
+                    }
+                }
+
+                if (!isDraggingVolume) {
+                    elVolume.value = data.volume;
+                }
+
+                // Update settings sync from server
+                if (data.cf_enabled !== undefined) {
+                    document.getElementById('cf-enable').checked = data.cf_enabled;
+                    // Only update slider if not currently dragging it (to avoid jumping)
+                    if (document.activeElement !== document.getElementById('cf-duration')) {
+                        document.getElementById('cf-duration').value = Math.round(data.cf_duration / 1000);
+                        const durLabel = document.getElementById('cf-dur-label');
+                        if (durLabel) durLabel.innerText = Math.round(data.cf_duration / 1000) + 's';
+                    }
+                    document.getElementById('r128-enable').checked = data.r128_enabled;
+                }
+
+                if (data.queue_length !== currentQueueLength) {
+                    currentQueueLength = data.queue_length;
+                    if (currentView === 'queue') {
+                        fetchPlaylist();
+                    }
+                }
+
+                if (data.playlist_name && data.playlist_name !== window.currentPlaylistName) {
+                    window.currentPlaylistName = data.playlist_name;
+                    const elName = document.getElementById('current-playlist-name');
+                    if (elName) elName.innerText = data.playlist_name !== "Unknown" ? `(${data.playlist_name})` : "";
+                    if (currentView === 'playlists') fetchPlaylistsList();
+                }
+
+                if (data.data_version !== undefined && data.data_version !== window.currentDataVersion) {
+                    window.currentDataVersion = data.data_version;
+                    if (currentView === 'playlists') fetchPlaylistsList();
+                    if (currentView === 'queue') fetchPlaylist();
+                }
+
+            } catch (e) {
+                document.getElementById("title").innerText = e.message; document.getElementById("artist").innerText = e.stack; console.error("Fetch state error:", e);
+            }
+        }
+
+        let currentView = 'player';
+        
+        
+        var currentTargetPid = null;
+        
+        function showConfirm(msg) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('confirm-modal');
+                document.getElementById('confirm-msg').innerText = msg;
+                modal.classList.add('open');
+                window.closeConfirm = function(res) {
+                    modal.classList.remove('open');
+                    resolve(res);
+                }
+            });
+        }
+
+        var fsCurrentPath = "";
+        var ytCurrentResults = [];
+        
+
+        function fsSelectAll() {
+            const cbs = document.querySelectorAll('.fs-checkbox');
+            const allChecked = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !allChecked);
+        }
+        function fsGoUp() {
+            if(!fsCurrentPath) return;
+            document.getElementById('fs-up-btn').onclick();
+        }
+        
+        function openFsModal(pid) {
+            currentTargetPid = pid;
+            document.getElementById('fs-modal').classList.add('open');
+            loadFs("");
+        }
+        function closeFsModal() {
+            document.getElementById('fs-modal').classList.remove('open');
+        }
+        
+        async function loadFs(path) {
+            document.getElementById('fs-content').innerHTML = "讀取中...";
+            try {
+                const res = await fetch('/api/fs?path=' + encodeURIComponent(path), { cache: 'no-store' });
+                const data = await res.json();
+                fsCurrentPath = data.path;
+                document.getElementById('fs-current-path').innerText = fsCurrentPath || "我的電腦";
+                document.getElementById('fs-up-btn').onclick = () => loadFs(data.parent);
+                document.getElementById('fs-up-btn').style.display = fsCurrentPath ? "block" : "none";
+                
+                let html = "";
+                data.items.forEach(item => {
+                    if(item.is_dir) {
+                        if (fsCurrentPath === "") {
+                            html += `<div class="track-item" onclick="loadFs('${item.path.replace(/\\/g, '\\\\')}')"><div class="track-idx">📁</div><div class="track-info-list"><div class="track-title-list">${item.name}</div></div></div>`;
+                        } else {
+                            html += `<div class="track-item">
+                                <input type="checkbox" class="fs-checkbox" value="${item.path.replace(/\\/g, '\\\\')}" style="margin-right: 10px; accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;">
+                                <div class="track-idx" style="cursor:pointer;" onclick="loadFs('${item.path.replace(/\\/g, '\\\\')}')">📁</div>
+                                <div class="track-info-list" style="cursor:pointer; flex-grow:1;" onclick="loadFs('${item.path.replace(/\\/g, '\\\\')}')"><div class="track-title-list">${item.name}</div></div>
+                            </div>`;
+                        }
+                    } else {
+                        html += `<div class="track-item" onclick="toggleFsCheck(this)"><input type="checkbox" class="fs-checkbox" value="${item.path.replace(/\\/g, '\\\\')}" style="margin-right: 10px; accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;"><div class="track-info-list" style="cursor:pointer; flex-grow:1;"><div class="track-title-list">${item.name}</div></div></div>`;
+                    }
+                });
+                document.getElementById('fs-content').innerHTML = html;
+                let hasCheckboxes = data.items.some(item => !item.is_dir || fsCurrentPath !== "");
+                const btnSelectAll = document.getElementById('fs-select-all-btn');
+                if (btnSelectAll) btnSelectAll.style.display = hasCheckboxes ? "block" : "none";
+
+            } catch (e) {
+                document.getElementById('fs-content').innerHTML = "讀取失敗";
+            }
+        }
+        function toggleFsCheck(el) {
+            const cb = el.querySelector('.fs-checkbox');
+            if(cb) cb.checked = !cb.checked;
+        }
+        async function addSelectedLocalFiles() {
+            const cbs = document.querySelectorAll('.fs-checkbox:checked');
+            const paths = Array.from(cbs).map(cb => cb.value);
+            if(paths.length === 0) return showToast("請選擇要加入的檔案");
+            await fetch('/api/playlist/add_local', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({pid: currentTargetPid, paths: paths})
+            });
+            closeFsModal();
+            showToast('✅ 已加入播放清單');
+            if (currentTargetPid !== -1) {
+                expandedPlaylists.add(currentTargetPid);
+            }
+            if (currentView === 'queue') fetchPlaylist();
+            else fetchPlaylistsList();
+        }
+
+        function openYtModal(pid) {
+            currentTargetPid = pid;
+            document.getElementById('yt-modal').classList.add('open');
+            document.getElementById('yt-content').innerHTML = "";
+            document.getElementById('yt-search-input').value = "";
+        }
+        function closeYtModal() {
+            document.getElementById('yt-modal').classList.remove('open');
+        }
+        async function searchYt() {
+            const q = document.getElementById('yt-search-input').value.trim();
+            if(!q) return;
+            document.getElementById('yt-content').innerHTML = "搜尋中...";
+            try {
+                const res = await fetch('/api/yt/search?q=' + encodeURIComponent(q), { cache: 'no-store' });
+                ytCurrentResults = await res.json();
+                renderYtResults();
+            } catch(e) { document.getElementById('yt-content').innerHTML = "搜尋失敗"; }
+        }
+        async function fetchYtUrl() {
+            const url = document.getElementById('yt-search-input').value.trim();
+            if(!url) return;
+            document.getElementById('yt-content').innerHTML = "讀取中...";
+            try {
+                const res = await fetch('/api/yt/fetch_url?url=' + encodeURIComponent(url), { cache: 'no-store' });
+                ytCurrentResults = await res.json();
+                renderYtResults();
+            } catch(e) { document.getElementById('yt-content').innerHTML = "讀取失敗"; }
+        }
+        function renderYtResults() {
+            let html = "";
+            ytCurrentResults.forEach((item, idx) => {
+                html += `<div class="track-item" onclick="toggleYtCheck(this)"><input type="checkbox" class="yt-checkbox" value="${idx}" style="margin-right: 10px; accent-color: var(--accent); width: 16px; height: 16px;"><img src="${item.thumb_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin-right: 10px;"><div class="track-info-list"><div class="track-title-list">${item.title}</div><div class="track-artist-list">${item.uploader} - ${formatTime(item.duration * 1000)}</div></div></div>`;
+            });
+            document.getElementById('yt-content').innerHTML = html;
+        }
+        function toggleYtCheck(el) {
+            if(el.tagName === 'INPUT') return;
+            const cb = el.querySelector('.yt-checkbox');
+            if(cb) cb.checked = !cb.checked;
+        }
+        async function submitRename() {
+            const input = document.getElementById('rename-input');
+            const newName = input.value.trim();
+            const pid = input.dataset.pid;
+            if(newName) {
+                await fetch('/api/control', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action: 'rename_playlist', value: {pid: parseInt(pid), name: newName}})
+                });
+                setTimeout(fetchPlaylistsList, 500);
+            }
+            document.getElementById('rename-modal').style.display = 'none';
+        }
+
+        async function addSelectedYt() {
+            const cbs = document.querySelectorAll('.yt-checkbox:checked');
+            const items = Array.from(cbs).map(cb => ytCurrentResults[parseInt(cb.value)]);
+            if(items.length === 0) return showToast("請選擇要加入的歌曲");
+            await fetch('/api/playlist/add_yt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({pid: currentTargetPid, items: items})
+            });
+            closeYtModal();
+            showToast('✅ 已加入播放清單');
+            if (currentTargetPid !== -1) {
+                expandedPlaylists.add(currentTargetPid);
+            }
+            if (currentView === 'queue') fetchPlaylist();
+            else fetchPlaylistsList();
+        }
+
+        async function createPlaylist(isYt) {
+            await fetch('/api/playlist/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: isYt ? "YT串流清單" : "新播放清單", is_yt: isYt})
+            });
+            setTimeout(fetchPlaylistsList, 500);
+        }
+
+        let currentRenamePid = null;
+        let currentRenameOldName = null;
+
+        function renamePlaylist(pid, oldName) {
+            currentRenamePid = pid;
+            currentRenameOldName = oldName;
+            const modal = document.getElementById('rename-modal');
+            const input = document.getElementById('rename-input');
+            input.value = oldName;
+            modal.style.display = 'block';
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closeRenameModal() {
+            document.getElementById('rename-modal').style.display = 'none';
+        }
+
+        async function confirmRenamePlaylist() {
+            const input = document.getElementById('rename-input');
+            const newName = input.value;
+            
+            if (newName && newName.trim() !== "" && newName !== currentRenameOldName) {
+                await fetch('/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'rename_playlist', value: { pid: currentRenamePid, name: newName.trim() } })
+                });
+                fetchPlaylistsList();
+                if (currentView === 'queue') fetchPlaylist();
+            }
+            closeRenameModal();
+        }
+
+        async function deletePlaylist(pid) {
+            if(!(await showCustomConfirm("確定要刪除播放清單嗎？"))) return;
+            try {
+                const res = await fetch('/api/playlist/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({pid: pid})
+                });
+                
+                if (!res.ok) {
+                    const resData = await res.json();
+                    showToast(resData.message || "刪除失敗");
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            setTimeout(fetchPlaylistsList, 500);
+        }
+
+        function toggleTrackCheck(el) {
+            const cb = el.querySelector('.q-checkbox');
+            if(cb) cb.checked = !cb.checked;
+        }
+        
+        async function deleteSelectedTracks() {
+            const cbs = document.querySelectorAll('.q-checkbox:checked');
+            const indices = Array.from(cbs).map(cb => parseInt(cb.value));
+            if(indices.length === 0) return showToast("請選擇要刪除的歌曲");
+            if(!(await showCustomConfirm(`確定要刪除選中的 ${indices.length} 首歌曲嗎？`))) return;
+            await fetch('/api/playlist/delete_tracks', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({indices: indices})
+            });
+            showToast('🗑️ 歌曲已移除');
+            setTimeout(fetchPlaylist, 500);
+        }
+
+        
+        async function playPlaylistAndSwitch(pid) {
+            await sendCommand('play_playlist', pid);
+            switchView('queue');
+        }
+
+        let expandedPlaylists = new Set();
+
+        async function fetchPlaylistsList() {
+            try {
+                const res = await fetch('/api/playlists', { cache: 'no-store' });
+                const data = await res.json();
+                elPlaylistsContent.innerHTML = `
+                    <div style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <button class="btn-top" onclick="createPlaylist(false)" style="flex: 1;">+ 本機清單</button>
+                        <button class="btn-top" onclick="createPlaylist(true)" style="flex: 1;">+ YT清單</button>
+                    </div>
+                `;
+                data.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'track-item';
+                    div.style.flexWrap = 'wrap';
+                    div.innerHTML = `
+                        <div class="track-idx" style="cursor: pointer;" onclick="sendCommand('play_playlist', ${p.id}); switchView('queue');">▶</div>
+                        <div class="track-info-list" style="cursor: pointer; flex-grow: 1;" onclick="togglePlaylistExpand(${p.id}, this.parentElement)">
+                            <div class="track-title-list">${p.name}</div>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="event.stopPropagation(); renamePlaylist(${p.id}, '${p.name.replace(/'/g, "\\'")}')" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">改名</button>
+                            <button onclick="event.stopPropagation(); openFsModal(${p.id})" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ 本機</button>
+                            <button onclick="event.stopPropagation(); openYtModal(${p.id})" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ YT</button>
+                            <button onclick="event.stopPropagation(); deletePlaylist(${p.id})" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">刪除</button>
+                        </div>
+                    `;
+                    elPlaylistsContent.appendChild(div);
+                    if (expandedPlaylists.has(p.id)) {
+                        togglePlaylistExpand(p.id, div);
+                    }
+                });
+            } catch (e) {}
+        }
+
+        async function fetchPlaylist() {
+            if (currentView !== 'queue') return;
+            try {
+                const searchInput = document.getElementById('queue-search-input');
+                const currentSearch = searchInput ? searchInput.value : '';
+                const res = await fetch('/api/playlist', { cache: 'no-store' });
+                const data = await res.json();
+                const elName = document.getElementById('current-playlist-name');
+                if (elName) elName.innerText = data.name && data.name !== "Unknown" ? `(${data.name})` : "";
+                
+                elQueueContent.innerHTML = `
+                    <div style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="queue-search-input" placeholder="🔍 搜尋當前佇列..." oninput="filterQueue(this.value)" style="flex: 1 1 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-main); margin-bottom: 4px; outline: none; font-size: 15px;">
+                        <button class="btn-top" onclick="toggleQueueSelectMode()" id="btn-queue-select" style="flex: 1; background: ${isQueueSelectMode ? 'var(--border)' : 'var(--card-bg)'}; color: var(--text-main); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">${isQueueSelectMode ? '取消多選' : '批量 / 自選'}</button>
+                        <button class="btn-top" onclick="selectAllQueue()" id="btn-queue-select-all" style="display: ${isQueueSelectMode ? 'block' : 'none'}; flex: 1; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">全選</button>
+                        <button class="btn-top" onclick="downloadAll()" id="btn-download-all" style="display: ${isQueueSelectMode ? 'none' : 'block'}; flex: 1; background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">打包下載</button>
+                        <button class="btn-top" onclick="downloadSelectedTracks()" id="btn-download-selected" style="display: ${isQueueSelectMode ? 'block' : 'none'}; flex: 1; background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">下載選中</button>
+                        <button class="btn-top" onclick="deleteSelectedTracks()" id="btn-queue-delete" style="display: ${isQueueSelectMode ? 'block' : 'none'}; flex: 1; background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">刪除</button>
+                    </div>
+                `;
+                data.tracks.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = 'track-item' + (t.index === data.current_index ? ' playing' : '');
+                    if (isQueueSelectMode) div.style.cursor = 'default';
+                    div.innerHTML = `
+                        <div class="q-checkbox-container" style="display: ${isQueueSelectMode ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
+                            <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
+                        </div>
+                        <div class="track-idx">${t.index + 1}</div>
+                        <div class="track-info-list">
+                            <div class="track-title-list">${t.title}</div>
+                            <div class="track-artist-list">${t.artist || '未知歌手'}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="font-size:12px; color:rgba(255,255,255,0.5)">${formatTime(t.duration)}</div>
+                            <button onclick="event.stopPropagation(); downloadTrack(${t.index});" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                            </button>
+                        </div>
+                    `;
+                    div.onclick = (e) => {
+                        if (isQueueSelectMode) {
+                            const cb = div.querySelector('.q-checkbox');
+                            if (cb) cb.checked = !cb.checked;
+                        } else {
+                            sendCommand('play_index', t.index);
+                        }
+                    };
+                    elQueueContent.appendChild(div);
+                });
+                if (currentSearch) {
+                    const newSearchInput = document.getElementById('queue-search-input');
+                    if (newSearchInput) {
+                        newSearchInput.value = currentSearch;
+                        newSearchInput.focus();
+                    }
+                    filterQueue(currentSearch);
+                }
+            } catch (e) {}
+        }
+        
+        
+        function selectAllQueue() {
+            const cbs = document.querySelectorAll('.q-checkbox');
+            const allChecked = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !allChecked);
+        }
+        
+        function filterQueue(term) {
+            term = term.toLowerCase();
+            const items = document.querySelectorAll('#queue-content .track-item');
+            items.forEach(el => {
+                const titleEl = el.querySelector('.track-title-list');
+                const artistEl = el.querySelector('.track-artist-list');
+                const title = titleEl ? titleEl.innerText.toLowerCase() : '';
+                const artist = artistEl ? artistEl.innerText.toLowerCase() : '';
+                if (title.includes(term) || artist.includes(term)) {
+                    el.style.display = 'flex';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        
+        
+        let sleepTimerEnd = 0;
+        let sleepTimerInterval = null;
+
+        function setSleepTimer(minutes) {
+            clearInterval(sleepTimerInterval);
+            if (minutes === 0) {
+                sleepTimerEnd = 0;
+                updateSleepTimerUI();
+                return;
+            }
+            sleepTimerEnd = Date.now() + minutes * 60000;
+            sleepTimerInterval = setInterval(() => {
+                if (sleepTimerEnd > 0 && Date.now() >= sleepTimerEnd) {
+                    sleepTimerEnd = 0;
+                    clearInterval(sleepTimerInterval);
+                    const sel = document.getElementById('sleep-select');
+                    if (sel) sel.value = "0";
+                    updateSleepTimerUI();
+                    
+                    showToast('💤 睡眠時間到，已自動暫停播放', 4000);
+                    
+                    if (isPlaying) {
+                        sendCommand('toggle_play');
+                    }
+                    
+                    if (isStreaming) {
+                        isStreaming = false;
+                        const cb = document.getElementById('stream-checkbox');
+                        const lbl = document.getElementById('lbl-stream');
+                        if (cb) cb.checked = false;
+                        if (lbl) lbl.style.color = 'var(--text-main)';
+                        elAudio.pause();
+                        elAudio.src = '';
+                        sendCommand('set_streaming_state', false);
+                        // Prevent unmuting main pc since user wants it to remain silent
+                        sendCommand('set_mute', true);
+                    }
+                }
+            }, 1000);
+            updateSleepTimerUI();
+        }
+
+        function updateSleepTimerUI() {
+            const el = document.getElementById('sleep-status');
+            if (!el) return;
+            if (sleepTimerEnd > 0) {
+                const diff = Math.max(0, sleepTimerEnd - Date.now());
+                const m = Math.floor(diff / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                el.innerText = `剩餘 ${m}:${s.toString().padStart(2, '0')}`;
+            } else {
+                el.innerText = "關閉";
+            }
+        }
+
+        function selectAllTracks() {
+            const checkboxes = document.querySelectorAll('.q-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+        function toggleTrackCheck(div) {
+            const cb = div.querySelector('.q-checkbox');
+            if(cb) cb.checked = !cb.checked;
+        }
+        async function downloadSelectedTracks() {
+            const checkboxes = document.querySelectorAll('.q-checkbox:checked');
+            if (checkboxes.length === 0) {
+                showToast("請先勾選要下載的歌曲！");
+                return;
+            }
+            const indices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            let playlistName = "預設播放清單";
+            const btn = document.getElementById('btn-download-selected');
+            btn.innerText = "打包中...";
+            btn.disabled = true;
+            try {
+                let pRes = await fetch('/api/playlist', {cache: 'no-store'});
+                let pData = await pRes.json();
+                if (pData.name) playlistName = pData.name;
+                
+                const now = new Date();
+                const dStr = now.getFullYear().toString() + 
+                            (now.getMonth()+1).toString().padStart(2,'0') + 
+                            now.getDate().toString().padStart(2,'0');
+                let filename = playlistName + dStr + ".zip";
+
+                let payload = {indices: indices, filename: filename};
+                let res = await fetch('/api/prepare_download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                let data = await res.json();
+                
+                let handleRes = handleDownloadResponse(data);
+                if (handleRes === 'need_password') {
+                    const pwd = await promptPassword(data.error);
+                    if (pwd !== null) {
+                        payload.password = pwd;
+                        btn.innerText = "驗證中...";
+                        res = await fetch('/api/prepare_download', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        });
+                        data = await res.json();
+                        handleRes = handleDownloadResponse(data);
+                        if (handleRes === 'need_password') {
+                            showToast(data.error || "密碼錯誤");
+                        }
+                    }
+                }
+            } catch (e) {
+                showToast("程式錯誤: " + e.message);
+            }
+            btn.innerText = "打包下載";
+            btn.disabled = false;
+        }
+        let isQueueSelectMode = false;
+        function toggleQueueSelectMode() {
+            isQueueSelectMode = !isQueueSelectMode;
+            fetchPlaylist();
+        }
+        
+        async function deleteSelectedTracks() {
+            const cbs = document.querySelectorAll('.q-checkbox:checked');
+            const indices = Array.from(cbs).map(cb => parseInt(cb.value));
+            if(indices.length === 0) return showToast('請選擇要刪除的歌曲');
+            if(!(await showCustomConfirm(`確定要刪除選中的 ${indices.length} 首歌曲嗎？`))) return;
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'remove_queue_indices', value: indices})
+            });
+            isQueueSelectMode = false;
+            showToast('已刪除所選歌曲');
+            setTimeout(fetchPlaylist, 500);
+        }
+
+        async function playPlaylistTrack(pid, index) {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'play_playlist_track', value: {pid: pid, index: index}})
+            });
+            switchView('queue');
+        }
+
+        async function togglePlaylistExpand(pid, divElement) {
+            let container = divElement.nextElementSibling;
+            if (container && container.classList.contains('playlist-tracks-container')) {
+                if (container.style.display === 'none') {
+                    container.style.display = 'block';
+                    expandedPlaylists.add(pid);
+                    expandedPlaylists.add(pid);
+                } else {
+                    container.style.display = 'none';
+                    expandedPlaylists.delete(pid);
+                }
+                return;
+            }
+            expandedPlaylists.add(pid);
+            container = document.createElement('div');
+            container.className = 'playlist-tracks-container';
+            container.style.padding = '10px 0 10px 20px';
+            container.style.background = 'var(--card-bg)';
+            container.innerHTML = '<div style="padding: 10px; color: gray;">載入中...</div>';
+            divElement.after(container);
+            
+            try {
+                const res = await fetch('/api/playlist_tracks/' + pid, { cache: 'no-store' });
+                const data = await res.json();
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="padding: 10px; color: gray;">清單內沒有歌曲</div>';
+                    return;
+                }
+                let html = '';
+                data.forEach((t, idx) => {
+                    html += `
+                        <div class="track-item" style="padding: 10px; border-bottom: 1px solid var(--card-bg); cursor: pointer; flex-wrap: wrap;" onclick="playPlaylistTrack(${pid}, ${idx})">
+                            <div style="font-size: 14px; width: 100%;">${t.title}</div>
+                            <div style="font-size: 12px; color: gray;">${t.artist}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = '<div style="padding: 10px; color: red;">讀取失敗</div>';
+            }
+        }
+
+        function switchView(viewId) {
+            currentView = viewId;
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById('view-' + viewId).classList.add('active');
+            const navBtn = document.querySelector(`.nav-item[onclick="switchView('${viewId}')"]`);
+            if(navBtn) navBtn.classList.add('active');
+            
+            const fab = document.querySelector('.fab-container');
+            if (viewId === 'queue') {
+                fab.classList.remove('hidden');
+            } else {
+                fab.classList.add('hidden');
+                document.getElementById('fab-menu').classList.remove('open');
+            }
+            
+            if (viewId === 'queue') fetchPlaylist();
+            if (viewId === 'playlists') fetchPlaylistsList();
+        }
+
+        async function sendCommand(action, value=null) {
+            await fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action, value})
+            });
+            fetchState();
+        }
+
+        // Progress Bar
+        elProgress.addEventListener('pointerdown', () => isDraggingProgress = true);
+        elProgress.addEventListener('input', (e) => {
+            isDraggingProgress = true;
+            elTimeCur.innerText = formatTime(e.target.value);
+        });
+        elProgress.addEventListener('change', (e) => {
+            sendCommand('seek', e.target.value);
+            if (isStreaming) elAudio.currentTime = e.target.value / 1000;
+            setTimeout(() => { isDraggingProgress = false; }, 500);
+        });
+
+        // Volume Bar
+        elVolume.addEventListener('mousedown', () => isDraggingVolume = true);
+        elVolume.addEventListener('touchstart', () => isDraggingVolume = true);
+        elVolume.addEventListener('input', (e) => {
+            clearTimeout(localVolumeTimer);
+            localVolumeTimer = setTimeout(() => {
+                sendCommand('volume', e.target.value);
+            }, 50);
+        });
+        elVolume.addEventListener('change', (e) => {
+            sendCommand('volume', e.target.value);
+            setTimeout(() => { isDraggingVolume = false; }, 1000);
+        });
+        
+        async function downloadTrack(idx) {
+            try {
+                let payload = {indices: [idx]};
+                let res = await fetch('/api/prepare_download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                let data = await res.json();
+                
+                let handleRes = handleDownloadResponse(data);
+                if (handleRes === 'need_password') {
+                    const pwd = await promptPassword(data.error);
+                    if (pwd !== null) {
+                        payload.password = pwd;
+                        res = await fetch('/api/prepare_download', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        });
+                        data = await res.json();
+                        handleRes = handleDownloadResponse(data);
+                        if (handleRes === 'need_password') {
+                            showToast(data.error || "密碼錯誤");
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                showToast("程式錯誤: " + e.message);
+            }
+        }
+
+        async function downloadAll() {
+            try {
+                const res = await fetch('/api/playlist', {cache: 'no-store'});
+                const p_data = await res.json();
+                const indices = p_data.tracks.map(t => t.index);
+                if (indices.length === 0) return showToast("沒有歌曲可以下載");
+                
+                let playlistName = p_data.name && p_data.name !== "Unknown" ? p_data.name : "預設播放清單";
+                const now = new Date();
+                const dStr = now.getFullYear().toString() + 
+                            (now.getMonth()+1).toString().padStart(2,'0') + 
+                            now.getDate().toString().padStart(2,'0');
+                let filename = playlistName + dStr + ".zip";
+                
+                document.getElementById('btn-download-all').innerText = "處理中...";
+                let payload = {indices: indices, filename: filename};
+                let d_res = await fetch('/api/prepare_download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                let data = await d_res.json();
+                
+                let handleRes = handleDownloadResponse(data);
+                if (handleRes === 'need_password') {
+                    const pwd = await promptPassword(data.error);
+                    if (pwd !== null) {
+                        document.getElementById('btn-download-all').innerText = "驗證中...";
+                        payload.password = pwd;
+                        d_res = await fetch('/api/prepare_download', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(payload)
+                        });
+                        data = await d_res.json();
+                        handleRes = handleDownloadResponse(data);
+                        if (handleRes === 'need_password') {
+                            showToast(data.error || "密碼錯誤");
+                        }
+                    }
+                }
+                
+                document.getElementById('btn-download-all').innerText = "打包下載";
+            } catch (e) {
+                console.error(e);
+                showToast("程式錯誤: " + e.message);
+                document.getElementById('btn-download-all').innerText = "打包下載";
+            }
+        }
+
+        async function fetchAudioSettings() {
+            try {
+                const res = await fetch('/api/audio_settings', { cache: 'no-store' });
+                const data = await res.json();
+                document.getElementById('cf-enable').checked = data.cf_enabled;
+                document.getElementById('cf-duration').value = Math.round(data.cf_duration / 1000);
+                document.getElementById('r128-enable').checked = data.r128_enabled;
+            } catch (e) { console.log(e); }
+        }
+        
+        async function updateAudioSettings() {
+            const cf_enabled = document.getElementById('cf-enable').checked;
+            const cf_duration = document.getElementById('cf-duration').value;
+            const r128_enabled = document.getElementById('r128-enable').checked;
+            await fetch('/api/audio_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    cf_enabled: cf_enabled, 
+                    cf_duration: parseInt(cf_duration) * 1000,
+                    r128_enabled: r128_enabled
+                })
+            });
+        }
+
+        // Audio initialization for iOS
+        let audioInit = false;
+        function initAudio() {
+            if (!audioInit && !isStreaming) {
+                elAudio.play().catch(e => console.log("Audio init error", e));
+                audioInit = true;
+            }
+        }
+        document.body.addEventListener('touchstart', initAudio, {once: true});
+        document.body.addEventListener('click', initAudio, {once: true});
+
+
+
+        function toggleTheme() {
+            const isLight = document.getElementById('theme-toggle').checked;
+            document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+
+        // Initialize theme on load
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                const tToggle = document.getElementById('theme-toggle');
+                if(tToggle) tToggle.checked = true;
+            }
+        });
+
+        function toggleFabMenu() {
+            const menu = document.getElementById('fab-menu');
+            if (menu) menu.classList.toggle('open');
+        }
+
+        function promptPassword(msg) {
+            return new Promise((resolve, reject) => {
+                const modal = document.getElementById('password-modal');
+                const input = document.getElementById('password-input');
+                const msgEl = document.getElementById('password-modal-msg');
+                msgEl.innerText = msg || "請輸入下載密碼以繼續操作";
+                input.value = '';
+                modal.style.display = 'block';
+                input.focus();
+                
+                window._pwdConfirm = (pwd) => {
+                    modal.style.display = 'none';
+                    resolve(pwd);
+                };
+                window._pwdCancel = () => {
+                    modal.style.display = 'none';
+                    resolve(null);
+                };
+            });
+        }
+        
+        function handleDownloadResponse(data) {
+            if (data.url) {
+                window.location.href = data.url;
+                return true;
+            } else if (data.forbidden) {
+                document.getElementById('forbidden-modal').style.display = 'block';
+                return false;
+            } else if (data.need_password) {
+                return 'need_password';
+            } else {
+                showToast(data.error || data.message || "下載準備失敗");
+                return false;
+            }
+        }
+        
+        function showToast(msg, duration = 2000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            
+            void toast.offsetWidth;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        fetchAudioSettings();
+        setInterval(fetchState, 400);
+
+        const coverEl = document.getElementById('cover-container');
+        if (coverEl) {
+            let touchStartX = 0;
+            coverEl.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+            coverEl.addEventListener('touchend', e => {
+                const touchEndX = e.changedTouches[0].screenX;
+                if (touchStartX - touchEndX > 50) sendCommand('next');
+                if (touchEndX - touchStartX > 50) sendCommand('prev');
+            }, {passive: true});
+        }
+
+        fetchState();
+
+        // PWA Installation Logic
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const pwaSec = document.getElementById('pwa-section');
+            if (pwaSec) pwaSec.style.display = 'block';
+        });
+
+        function isIos() {
+            const userAgent = window.navigator.userAgent.toLowerCase();
+            return /iphone|ipad|ipod/.test( userAgent );
+        }
+        function isInStandaloneMode() {
+            return ('standalone' in window.navigator) && (window.navigator.standalone);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (isIos() && !isInStandaloneMode()) {
+                const pwaSec = document.getElementById('pwa-section');
+                if (pwaSec) pwaSec.style.display = 'block';
+            }
+        });
+
+        async function installPWA() {
+            if (isIos() && !isInStandaloneMode()) {
+                showToast("蘋果用戶請點擊下方「分享」按鈕，選擇「加入主畫面」即可完成安裝！");
+                return;
+            }
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
+                    const pwaSec = document.getElementById('pwa-section');
+                    if (pwaSec) pwaSec.style.display = 'none';
+                }
+            } else {
+                showToast("您的瀏覽器目前不支援自動安裝，請手動加入主畫面。");
+            }
+        }
+</script>
+
+    <!-- FS Modal -->
+    <div id="fs-modal" class="drawer-overlay">
+        <div class="drawer" style="height: 80vh; bottom: 0; padding: 20px 10px; display: flex; flex-direction: column;">
+            <div class="drawer-title">新增本機檔案</div>
+            <button class="btn-close" onclick="closeFsModal()">✕</button>
+            <div style="font-size:12px; color:#888; margin-bottom:10px;" id="fs-current-path">讀取中...</div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <button class="btn-top" onclick="fsGoUp()" id="fs-up-btn">上一層</button>
+                <button class="btn-top" onclick="addSelectedLocalFiles()" style="background: var(--accent); color: #000;">加入播放清單</button>
+            </div>
+            <div id="fs-content" style="flex-grow:1; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- YT Modal -->
+    
+    <div id="custom-confirm-modal" class="drawer-overlay" style="z-index: 1000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); width: 85%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-size: 18px; font-weight: bold; text-align: center; color: var(--text-main);">確認操作</div>
+            <div id="custom-confirm-message" style="font-size: 15px; text-align: center; color: var(--text-sub); line-height: 1.5;"></div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button onclick="document.getElementById('custom-confirm-modal').style.display = 'none'; if(window.customConfirmCallback) window.customConfirmCallback(false);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--border); color: var(--text-main); font-weight: bold; cursor: pointer;">取消</button>
+                <button onclick="document.getElementById('custom-confirm-modal').style.display = 'none'; if(window.customConfirmCallback) window.customConfirmCallback(true);" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: #ef4444; color: white; font-weight: bold; cursor: pointer;">確定刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="yt-modal" class="drawer-overlay">
+        <div class="drawer" style="height: 80vh; bottom: 0; padding: 20px 10px; display: flex; flex-direction: column;">
+            <div class="drawer-title">新增 YouTube</div>
+            <button class="btn-close" onclick="closeYtModal()">✕</button>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="yt-search-input" placeholder="搜尋或貼上網址..." style="flex-grow: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px;">
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <button class="btn-top" onclick="searchYt()" style="flex:1;">搜尋</button>
+                <button class="btn-top" onclick="fetchYtUrl()" style="flex:1;">網址</button>
+                <button class="btn-top" onclick="addSelectedYt()" style="flex:2; background: var(--accent); color: #000;">加入播放清單</button>
+            </div>
+            <div id="yt-content" style="flex-grow:1; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+
+    <div id="forbidden-modal" class="drawer-overlay" style="z-index: 1000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); width: 80%; max-width: 300px; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+            <h3 style="margin-top:0; color: #ef4444; display: flex; align-items: center; gap: 8px;">下載已被拒絕</h3>
+            <p style="color: var(--text-main); margin-bottom: 20px; font-size: 14px;">檔案持有者未開放下載</p>
+            <div style="display: flex; justify-content: flex-end;">
+                <button onclick="document.getElementById('forbidden-modal').style.display='none'" style="background: rgba(255,255,255,0.1); color: var(--text-main); border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="password-modal" class="drawer-overlay" style="z-index: 1000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); width: 80%; max-width: 300px; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+            <h3 style="margin-top:0; color: var(--text-main); display: flex; align-items: center; gap: 8px;">需要密碼</h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 13px; margin-bottom: 12px;" id="password-modal-msg">請輸入下載密碼以繼續操作</p>
+            <input type="password" id="password-input" placeholder="請輸入密碼" style="width: 100%; padding: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 4px; color: white; box-sizing: border-box; outline: none;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('password-modal').style.display='none'; if(window._pwdCancel) window._pwdCancel();" style="background: rgba(255,255,255,0.1); color: var(--text-main); border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">取消</button>
+                <button onclick="if(window._pwdConfirm) window._pwdConfirm(document.getElementById('password-input').value);" style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="drawer-overlay" style="z-index: 1000; display: none;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); width: 85%; max-width: 340px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-size: 18px; font-weight: bold; text-align: center; color: var(--text-main);">重新命名播放清單</div>
+            <input type="text" id="rename-input" placeholder="請輸入新名稱" style="width: 100%; padding: 12px; background: var(--nav-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text-main); font-size: 16px; outline: none;">
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button onclick="closeRenameModal()" style="flex: 1; padding: 12px; background: var(--btn-bg); border: none; border-radius: 10px; color: var(--text-main); font-size: 16px; cursor: pointer; font-weight: bold;">取消</button>
+                <button onclick="confirmRenamePlaylist()" style="flex: 1; padding: 12px; background: var(--accent); border: none; border-radius: 10px; color: #000; font-size: 16px; cursor: pointer; font-weight: bold;">確認</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
