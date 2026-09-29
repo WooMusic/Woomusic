@@ -2134,7 +2134,11 @@ function toggleStream() {
         
         function handleDownloadResponse(data) {
             if (data.url) {
-                window.location.href = data.url;
+                let dlUrl = data.url;
+                if (dlUrl.startsWith('/api/')) {
+                    dlUrl = (window.API_BASE || "") + dlUrl;
+                }
+                window.location.href = dlUrl;
                 return true;
             } else if (data.forbidden) {
                 document.getElementById('forbidden-modal').style.display = 'block';
