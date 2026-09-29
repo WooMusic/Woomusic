@@ -2136,7 +2136,7 @@ function toggleStream() {
             if (data.url) {
                 let dlUrl = data.url;
                 if (dlUrl.startsWith('/api/')) {
-                    dlUrl = (window.API_BASE || "") + dlUrl;
+                    dlUrl = ((typeof API_BASE !== "undefined" ? API_BASE : "") || (window.API_BASE || "")) + dlUrl;
                 }
                 window.location.href = dlUrl;
                 return true;
