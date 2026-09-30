@@ -1212,14 +1212,14 @@ function toggleStream() {
                 elAudio.addEventListener('loadedmetadata', onMeta);
                 elAudio.play().catch(e => console.log(e));
             }
-            sendCommand('resume');
+            sendCommand('toggle_play');
         }
 
         function handleUserPause() {
             if (isStreaming && !elAudio.paused) {
                 elAudio.pause();
             }
-            sendCommand('pause');
+            sendCommand('toggle_play');
         }
 
         function handleUserTogglePlay() {
