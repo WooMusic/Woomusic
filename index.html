@@ -1201,16 +1201,17 @@ function toggleStream() {
         
         
         function handleUserPlay() {
-            if (isStreaming && elAudio.paused && currentTrackTitle) {
-                let resumeTime = elAudio.currentTime;
-                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle) + "&_r=" + Date.now();
-                elAudio.load();
-                const onMeta = () => {
-                    elAudio.currentTime = resumeTime;
-                    elAudio.removeEventListener('loadedmetadata', onMeta);
-                };
-                elAudio.addEventListener('loadedmetadata', onMeta);
-                elAudio.play().catch(e => console.log(e));
+            if (isStreaming && elAudio.paused) {
+                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
+                if (elAudio.error) {
+                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
+                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
+                    elAudio.load();
+                }
+                let p = elAudio.play();
+                if (p !== undefined) {
+                    p.catch(e => console.log("Play err:", e));
+                }
             }
             sendCommand('toggle_play');
         }
