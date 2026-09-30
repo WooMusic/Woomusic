@@ -1076,6 +1076,8 @@ const ICONS = {
         }
 
         let mediaSessionInit = false;
+        let lastPauseAt = 0;
+        window._lastUserAction = 0;
         let isStreaming = false;
         let nextTrackTitle = "";
         const elAudio = document.getElementById('silent-audio');
@@ -1114,7 +1116,9 @@ function toggleStream() {
                 if(volContainer) volContainer.style.display = 'none';
                 elAudio.volume = 1.0;
                 elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                elAudio.currentTime = elProgress.value / 1000;
+                elAudio.addEventListener('loadedmetadata', () => {
+                    elAudio.currentTime = elProgress.value / 1000;
+                }, { once: true });
                 elAudio.play().catch(e => console.log(e));
                 sendCommand('set_mute', true);
                 showToast('已切換為手機播放 (電腦端靜音)');
@@ -1122,11 +1126,13 @@ function toggleStream() {
                 if(lbl) lbl.style.color = 'var(--text-main)';
                 if(volContainer) volContainer.style.display = 'flex';
                 elAudio.pause();
-                elAudio.src = '';
+                elAudio.removeAttribute('src');
+                elAudio.load();
                 sendCommand('set_mute', false);
                 showToast('已恢復電腦端播放');
                 sendCommand('set_mute', false);
             }
+        }
         }
 
         function updateMediaSessionMetadata(data) {
@@ -1186,36 +1192,40 @@ function toggleStream() {
         }
         
         
-        function handleUserPlay() {
-            if (isStreaming && elAudio.paused) {
-                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
-                if (elAudio.error) {
-                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
-                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
-                    elAudio.load();
-                }
-                let p = elAudio.play();
-                if (p !== undefined) {
-                    p.catch(e => console.log("Play err:", e));
-                }
+        
+        function resumeLocal() {
+            const stale = Date.now() - lastPauseAt > 20000;
+            if (elAudio.error || stale || elAudio.readyState < 3) {
+                const pos = elAudio.currentTime;
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + '&_r=' + Date.now();
+                elAudio.load();
+                elAudio.addEventListener('loadedmetadata', () => { elAudio.currentTime = pos; }, { once: true });
             }
-            sendCommand('toggle_play');
+            let p = elAudio.play();
+            if (p !== undefined) p.catch(e => {});
+        }
+
+        function handleUserPlay() {
+            window._lastUserAction = Date.now();
+            if (isStreaming) resumeLocal();
+            if (!isPlaying) sendCommand('toggle_play');
         }
 
         function handleUserPause() {
-            if (isStreaming && !elAudio.paused) {
-                elAudio.pause();
-            }
-            sendCommand('toggle_play');
+            window._lastUserAction = Date.now();
+            if (isStreaming && !elAudio.paused) elAudio.pause();
+            if (isPlaying) sendCommand('toggle_play');
         }
 
         function handleUserTogglePlay() {
+            window._lastUserAction = Date.now();
             if (isStreaming) {
                 if (elAudio.paused) handleUserPlay();
                 else handleUserPause();
             } else {
                 sendCommand('toggle_play');
             }
+        }
         }
         
         let isFetchingState = false;
