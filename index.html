@@ -1106,14 +1106,12 @@ const ICONS = {
 
         elAudio.addEventListener('ended', () => {
             if (!isStreaming) return;
-            // Use pre-loaded next track title (from fetchState polling).
-            // CRITICAL: This must be SYNCHRONOUS — no await/fetch here!
-            // iOS only allows play() within ~100ms of the ended event.
-            if (nextTrackTitle) {
-                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(nextTrackTitle);
+            // Use the title from the manual skip queue, OR the pre-loaded next track
+            const targetTitle = window._pendingNextTitle || nextTrackTitle;
+            if (targetTitle) {
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(targetTitle);
                 elAudio.play().catch(e => console.log("Bg play failed:", e));
-                // Tell PC to advance to next track
-                sendCommand('next');
+                window._pendingNextTitle = null; // Clear it
             }
         });
         
@@ -1243,9 +1241,12 @@ function toggleStream() {
                     updateSleepTimerUI();
 
                     if (isStreaming) {
-                        // Anti-tail-cut: if audio is still playing, don't force-switch.
-                        // Let the 'ended' event handle the transition naturally.
-                        if (elAudio.paused || elAudio.ended) {
+                        const timeRemaining = elAudio.duration ? (elAudio.duration - elAudio.currentTime) : 999;
+                        // Anti-tail-cut: If within 5 seconds of the end, let the natural 'ended' event handle it
+                        if (timeRemaining > 0 && timeRemaining < 5) {
+                            window._pendingNextTitle = currentTrackTitle;
+                        } else {
+                            // Manual skip or fresh start -> Update audio immediately!
                             elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                             if (data.is_playing) elAudio.play().catch(e => {});
                         }
