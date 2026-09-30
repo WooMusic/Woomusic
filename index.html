@@ -1200,7 +1200,11 @@ function toggleStream() {
             });
         }
         
+        let isFetchingState = false;
+        
         async function fetchState() {
+            if (isFetchingState) return;
+            isFetchingState = true;
             try {
                 const res = await fetch('/api/state', { cache: 'no-store' });
                 const data = await res.json();
@@ -1241,12 +1245,11 @@ function toggleStream() {
                     updateSleepTimerUI();
 
                     if (isStreaming) {
-                        const timeRemaining = elAudio.duration ? (elAudio.duration - elAudio.currentTime) : 999;
-                        // Anti-tail-cut: If within 5 seconds of the end, let the natural 'ended' event handle it
-                        if (timeRemaining > 0 && timeRemaining < 5) {
+                        if (data.skip_reason === "auto") {
+                            // 自然播完 (Auto advance) -> 絕對不切尾！交給 'ended' 事件在背景無縫接軌
                             window._pendingNextTitle = currentTrackTitle;
                         } else {
-                            // Manual skip or fresh start -> Update audio immediately!
+                            // 手動切換 (Manual skip) -> 無情切斷舊音源，立刻跟上新歌
                             elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
                             if (data.is_playing) elAudio.play().catch(e => {});
                         }
@@ -1352,6 +1355,11 @@ function toggleStream() {
                 document.getElementById("title").innerText = "連線失敗 (主機無回應)"; 
                 document.getElementById("artist").innerHTML = `<button onclick="localStorage.removeItem('wajiabar_device_id'); location.href=location.pathname;" style="padding:6px 12px;background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:5px;font-size:12px;">重新輸入配對碼</button>`;
                 console.error("Fetch state error:", e);
+            } finally {
+                isFetchingState = false;
+                // 動態節流：在背景或關閉螢幕時降速至 2 秒，平時 600 毫秒
+                const delay = document.hidden ? 2000 : 600;
+                setTimeout(fetchState, delay);
             }
         }
 
@@ -2183,7 +2191,7 @@ function toggleStream() {
         }
 
         fetchAudioSettings();
-        setInterval(fetchState, 400);
+        // setInterval removed in favor of dynamic setTimeout in fetchState finally block
 
         const coverEl = document.getElementById('cover-container');
         if (coverEl) {
