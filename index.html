@@ -851,7 +851,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
             <button class="btn" onclick="sendCommand('prev')">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
             </button>
-            <button id="btn-play" class="btn btn-play" onclick="sendCommand('toggle_play')">
+            <button id="btn-play" class="btn btn-play" onclick="handleUserTogglePlay()">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </button>
             <button class="btn" onclick="sendCommand('next')">
@@ -1097,8 +1097,8 @@ const ICONS = {
         
         // --- BACKGROUND AUDIO FIX ---
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('play', () => { sendCommand('resume'); if(isStreaming) elAudio.play(); });
-            navigator.mediaSession.setActionHandler('pause', () => { sendCommand('pause'); if(isStreaming) elAudio.pause(); });
+            navigator.mediaSession.setActionHandler('play', handleUserPlay);
+            navigator.mediaSession.setActionHandler('pause', handleUserPause);
             navigator.mediaSession.setActionHandler('previoustrack', () => sendCommand('prev'));
             navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
         }
@@ -1155,8 +1155,8 @@ function toggleStream() {
                 });
 
                 if (!mediaSessionInit) {
-                    navigator.mediaSession.setActionHandler('play', () => sendCommand('toggle_play'));
-                    navigator.mediaSession.setActionHandler('pause', () => sendCommand('toggle_play'));
+                    navigator.mediaSession.setActionHandler('play', handleUserPlay);
+                    navigator.mediaSession.setActionHandler('pause', handleUserPause);
                     navigator.mediaSession.setActionHandler('previoustrack', () => sendCommand('prev'));
                     navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
                     // Handle lock screen progress bar dragging
@@ -1197,6 +1197,38 @@ function toggleStream() {
                 modal.style.display = 'flex';
                 window.customConfirmCallback = resolve;
             });
+        }
+        
+        
+        function handleUserPlay() {
+            if (isStreaming && elAudio.paused && currentTrackTitle) {
+                let resumeTime = elAudio.currentTime;
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle) + "&_r=" + Date.now();
+                elAudio.load();
+                const onMeta = () => {
+                    elAudio.currentTime = resumeTime;
+                    elAudio.removeEventListener('loadedmetadata', onMeta);
+                };
+                elAudio.addEventListener('loadedmetadata', onMeta);
+                elAudio.play().catch(e => console.log(e));
+            }
+            sendCommand('resume');
+        }
+
+        function handleUserPause() {
+            if (isStreaming && !elAudio.paused) {
+                elAudio.pause();
+            }
+            sendCommand('pause');
+        }
+
+        function handleUserTogglePlay() {
+            if (isStreaming) {
+                if (elAudio.paused) handleUserPlay();
+                else handleUserPause();
+            } else {
+                sendCommand('toggle_play');
+            }
         }
         
         let isFetchingState = false;
@@ -1262,13 +1294,7 @@ function toggleStream() {
 
                 // Sync streaming audio state
                 if (isStreaming) {
-                    if (data.is_playing && elAudio.paused) {
-                        let savedTime = elAudio.currentTime || data.position / 1000;
-                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle) + "&_r=" + Date.now();
-                        elAudio.load();
-                        elAudio.currentTime = savedTime;
-                        elAudio.play().catch(e => {});
-                    }
+                    if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
                     else if (!data.is_playing && !elAudio.paused) elAudio.pause();
                     
                     // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
