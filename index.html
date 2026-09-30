@@ -1187,6 +1187,8 @@ function toggleStream() {
         }
         
         
+        let lastPauseTime = 0;
+        elAudio.addEventListener('pause', () => { lastPauseTime = Date.now(); });
         function handleUserPlay() {
             window._lastUserAction = Date.now();
             if (isStreaming && elAudio.paused) {
