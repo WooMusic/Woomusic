@@ -1076,8 +1076,6 @@ const ICONS = {
         }
 
         let mediaSessionInit = false;
-        let lastPauseAt = 0;
-        window._lastUserAction = 0;
         let isStreaming = false;
         let nextTrackTitle = "";
         const elAudio = document.getElementById('silent-audio');
@@ -1104,6 +1102,7 @@ const ICONS = {
         
         // Update MediaSession metadata in pollState
 function toggleStream() {
+            window._lastUserAction = Date.now();
             isStreaming = !isStreaming;
             const cb = document.getElementById('stream-checkbox');
             const lbl = document.getElementById('lbl-stream');
@@ -1116,9 +1115,7 @@ function toggleStream() {
                 if(volContainer) volContainer.style.display = 'none';
                 elAudio.volume = 1.0;
                 elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                elAudio.addEventListener('loadedmetadata', () => {
-                    elAudio.currentTime = elProgress.value / 1000;
-                }, { once: true });
+                elAudio.currentTime = elProgress.value / 1000;
                 elAudio.play().catch(e => console.log(e));
                 sendCommand('set_mute', true);
                 showToast('已切換為手機播放 (電腦端靜音)');
@@ -1126,13 +1123,11 @@ function toggleStream() {
                 if(lbl) lbl.style.color = 'var(--text-main)';
                 if(volContainer) volContainer.style.display = 'flex';
                 elAudio.pause();
-                elAudio.removeAttribute('src');
-                elAudio.load();
+                elAudio.src = '';
                 sendCommand('set_mute', false);
                 showToast('已恢復電腦端播放');
                 sendCommand('set_mute', false);
             }
-        }
         }
 
         function updateMediaSessionMetadata(data) {
@@ -1192,29 +1187,29 @@ function toggleStream() {
         }
         
         
-        
-        function resumeLocal() {
-            const stale = Date.now() - lastPauseAt > 20000;
-            if (elAudio.error || stale || elAudio.readyState < 3) {
-                const pos = elAudio.currentTime;
-                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + '&_r=' + Date.now();
-                elAudio.load();
-                elAudio.addEventListener('loadedmetadata', () => { elAudio.currentTime = pos; }, { once: true });
-            }
-            let p = elAudio.play();
-            if (p !== undefined) p.catch(e => {});
-        }
-
         function handleUserPlay() {
             window._lastUserAction = Date.now();
-            if (isStreaming) resumeLocal();
-            if (!isPlaying) sendCommand('toggle_play');
+            if (isStreaming && elAudio.paused) {
+                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
+                if (elAudio.error) {
+                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
+                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
+                    elAudio.load();
+                }
+                let p = elAudio.play();
+                if (p !== undefined) {
+                    p.catch(e => console.log("Play err:", e));
+                }
+            }
+            sendCommand('toggle_play');
         }
 
         function handleUserPause() {
             window._lastUserAction = Date.now();
-            if (isStreaming && !elAudio.paused) elAudio.pause();
-            if (isPlaying) sendCommand('toggle_play');
+            if (isStreaming && !elAudio.paused) {
+                elAudio.pause();
+            }
+            sendCommand('toggle_play');
         }
 
         function handleUserTogglePlay() {
@@ -1225,7 +1220,6 @@ function toggleStream() {
             } else {
                 sendCommand('toggle_play');
             }
-        }
         }
         
         let isFetchingState = false;
@@ -1290,7 +1284,7 @@ function toggleStream() {
                 }
 
                 // Sync streaming audio state
-                if (isStreaming) {
+                if (isStreaming && Date.now() - (window._lastUserAction || 0) > 3000) {
                     if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
                     else if (!data.is_playing && !elAudio.paused) elAudio.pause();
                     
