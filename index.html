@@ -1262,7 +1262,13 @@ function toggleStream() {
 
                 // Sync streaming audio state
                 if (isStreaming) {
-                    if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
+                    if (data.is_playing && elAudio.paused) {
+                        let savedTime = elAudio.currentTime || data.position / 1000;
+                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle) + "&_r=" + Date.now();
+                        elAudio.load();
+                        elAudio.currentTime = savedTime;
+                        elAudio.play().catch(e => {});
+                    }
                     else if (!data.is_playing && !elAudio.paused) elAudio.pause();
                     
                     // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
