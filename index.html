@@ -1092,6 +1092,7 @@ const ICONS = {
 
         let mediaSessionInit = false;
         let isStreaming = false;
+        let nextTrackTitle = "";
         const elAudio = document.getElementById('silent-audio');
 
         
@@ -1103,23 +1104,16 @@ const ICONS = {
             navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
         }
 
-        elAudio.addEventListener('ended', async () => {
+        elAudio.addEventListener('ended', () => {
             if (!isStreaming) return;
-            // When track ends, JS might be suspended on mobile if we don't immediately do something.
-            // Force a state check to get the new track and play it.
-            try {
-                const res = await fetch('/api/state', { cache: 'no-store' });
-                const data = await res.json();
-                if (data.current_track && data.current_track.title !== currentTrackTitle) {
-                    currentTrackTitle = data.current_track.title;
-                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                    elAudio.play().catch(e => console.log("Bg play failed:", e));
-                } else {
-                    // Server hasn't switched yet, check again in 1s
-                    setTimeout(pollState, 1000);
-                }
-            } catch(e) {
-                console.log(e);
+            // Use pre-loaded next track title (from fetchState polling).
+            // CRITICAL: This must be SYNCHRONOUS — no await/fetch here!
+            // iOS only allows play() within ~100ms of the ended event.
+            if (nextTrackTitle) {
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(nextTrackTitle);
+                elAudio.play().catch(e => console.log("Bg play failed:", e));
+                // Tell PC to advance to next track
+                sendCommand('next');
             }
         });
         
@@ -1239,9 +1233,18 @@ function toggleStream() {
                     updateSleepTimerUI();
 
                     if (isStreaming) {
-                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                        if (data.is_playing) elAudio.play().catch(e => {});
+                        // Anti-tail-cut: if audio is still playing, don't force-switch.
+                        // Let the 'ended' event handle the transition naturally.
+                        if (elAudio.paused || elAudio.ended) {
+                            elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
+                            if (data.is_playing) elAudio.play().catch(e => {});
+                        }
                     }
+                }
+
+                // Pre-load next track title for iOS background ended handler
+                if (data.next_title !== undefined) {
+                    nextTrackTitle = data.next_title;
                 }
 
                 // Sync streaming audio state
