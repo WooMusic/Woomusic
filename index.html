@@ -1119,6 +1119,7 @@ function toggleStream() {
                 elAudio.play().catch(e => console.log(e));
                 sendCommand('set_mute', true);
                 showToast('已切換為手機播放 (電腦端靜音)');
+                document.getElementById('silent-keeper').play().catch(e => {});
             } else {
                 if(lbl) lbl.style.color = 'var(--text-main)';
                 if(volContainer) volContainer.style.display = 'flex';
@@ -1126,6 +1127,7 @@ function toggleStream() {
                 elAudio.src = '';
                 sendCommand('set_mute', false);
                 showToast('已恢復電腦端播放');
+                document.getElementById('silent-keeper').pause();
                 sendCommand('set_mute', false);
             }
         }
@@ -1189,20 +1191,9 @@ function toggleStream() {
         
         let lastPauseTime = 0;
         elAudio.addEventListener('pause', () => { lastPauseTime = Date.now(); });
-        function handleUserPlay() {
+                function handleUserPlay() {
             window._lastUserAction = Date.now();
             if (isStreaming && elAudio.paused) {
-                // 強制喚醒 iOS 硬體音訊通道
-                // 如果在背景被暫停，iOS 會沒收喇叭權限。必須在 MediaSession 觸發的當下立刻重載 src。
-                const isStale = Date.now() - lastPauseTime > 1500;
-                if (elAudio.error || (document.hidden && isStale) || elAudio.readyState < 3) {
-                    const pos = elAudio.currentTime;
-                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
-                    elAudio.load();
-                    elAudio.addEventListener('loadedmetadata', () => { 
-                        if (pos > 0) elAudio.currentTime = pos; 
-                    }, { once: true });
-                }
                 let p = elAudio.play();
                 if (p !== undefined) {
                     p.catch(e => console.log("Play err:", e));
@@ -2314,5 +2305,6 @@ function toggleStream() {
         </div>
     </div>
 
+    <audio id="silent-keeper" loop src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVFYAAFRWAAABAAgAZGF0YQAAAAA="></audio>
 </body>
 </html>
