@@ -888,20 +888,6 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
     <div id="view-settings" class="view" style="padding: env(safe-area-inset-top) 20px 20px;">
         <div style="padding: 20px 0; font-size: 24px; font-weight: bold;">設定</div>
         
-
-
-                <!-- PWA Install Button -->
-        <div class="settings-section" id="pwa-section" style="display: block; cursor: pointer; margin-bottom: 12px;" onclick="installPWA()">
-            <div class="setting-item">
-                <div style="display: flex; align-items: center; justify-content: center; width: 100%; color: var(--accent); font-weight: bold; font-size: 16px; padding: 10px 0;">
-                    <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: currentColor; margin-right: 8px;">
-                        <path d="M17 1H7C5.9 1 5 1.9 5 3V21C5 22.1 5.9 23 7 23H17C18.1 23 19 22.1 19 21V3C19 1.9 18.1 1 17 1ZM17 19H7V5H17V19ZM16 13H13V17H11V13H8L12 9L16 13Z"/>
-                    </svg>
-                    安裝為桌面 App (沉浸體驗)
-                </div>
-            </div>
-        </div>
-        
         <div class="settings-section">
             <div class="settings-row">
                 <div>
@@ -2237,48 +2223,6 @@ function toggleStream() {
         }
 
         fetchState();
-
-        // PWA Installation Logic
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const pwaSec = document.getElementById('pwa-section');
-            if (pwaSec) pwaSec.style.display = 'block';
-        });
-
-        function isIos() {
-            const userAgent = window.navigator.userAgent.toLowerCase();
-            return /iphone|ipad|ipod/.test( userAgent );
-        }
-        function isInStandaloneMode() {
-            return ('standalone' in window.navigator) && (window.navigator.standalone);
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (isIos() && !isInStandaloneMode()) {
-                const pwaSec = document.getElementById('pwa-section');
-                if (pwaSec) pwaSec.style.display = 'block';
-            }
-        });
-
-        async function installPWA() {
-            if (isIos() && !isInStandaloneMode()) {
-                showToast("蘋果用戶請點擊下方「分享」按鈕，選擇「加入主畫面」即可完成安裝！");
-                return;
-            }
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    deferredPrompt = null;
-                    const pwaSec = document.getElementById('pwa-section');
-                    if (pwaSec) pwaSec.style.display = 'none';
-                }
-            } else {
-                showToast("您的瀏覽器目前不支援自動安裝，請手動加入主畫面。");
-            }
-        }
 </script>
 
     <!-- FS Modal -->
