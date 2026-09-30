@@ -1162,6 +1162,16 @@ function toggleStream() {
                     navigator.mediaSession.setActionHandler('pause', () => sendCommand('toggle_play'));
                     navigator.mediaSession.setActionHandler('previoustrack', () => sendCommand('prev'));
                     navigator.mediaSession.setActionHandler('nexttrack', () => sendCommand('next'));
+                    // Handle lock screen progress bar dragging
+                    navigator.mediaSession.setActionHandler('seekto', (details) => {
+                        if (details.seekTime !== undefined) {
+                            const targetMs = details.seekTime * 1000;
+                            sendCommand('seek', targetMs);
+                            if (isStreaming) {
+                                elAudio.currentTime = details.seekTime;
+                            }
+                        }
+                    });
                     // iOS Bluetooth headsets often force 'seek' buttons when audio is looped. Map them to next/prev!
                     navigator.mediaSession.setActionHandler('seekforward', () => sendCommand('next'));
                     navigator.mediaSession.setActionHandler('seekbackward', () => sendCommand('prev'));
