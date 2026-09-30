@@ -1190,11 +1190,16 @@ function toggleStream() {
         function handleUserPlay() {
             window._lastUserAction = Date.now();
             if (isStreaming && elAudio.paused) {
-                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
-                if (elAudio.error) {
-                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
+                // 強制喚醒 iOS 硬體音訊通道
+                // 如果在背景被暫停，iOS 會沒收喇叭權限。必須在 MediaSession 觸發的當下立刻重載 src。
+                const isStale = Date.now() - lastPauseTime > 1500;
+                if (elAudio.error || (document.hidden && isStale) || elAudio.readyState < 3) {
+                    const pos = elAudio.currentTime;
                     elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
                     elAudio.load();
+                    elAudio.addEventListener('loadedmetadata', () => { 
+                        if (pos > 0) elAudio.currentTime = pos; 
+                    }, { once: true });
                 }
                 let p = elAudio.play();
                 if (p !== undefined) {
