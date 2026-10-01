@@ -829,7 +829,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
             <img id="cover" class="cover-image" src="/api/cover" onerror="this.style.display='none'">
         </div>
         
-        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px; margin-top: 32px;">
+        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px;">
             <div class="text-group">
                 <div id="title" class="title">讀取中...</div>
                 <div id="artist" class="artist">等待連接</div>
@@ -1102,7 +1102,6 @@ const ICONS = {
         
         // Update MediaSession metadata in pollState
 function toggleStream() {
-            window._lastUserAction = Date.now();
             isStreaming = !isStreaming;
             const cb = document.getElementById('stream-checkbox');
             const lbl = document.getElementById('lbl-stream');
@@ -1119,7 +1118,6 @@ function toggleStream() {
                 elAudio.play().catch(e => console.log(e));
                 sendCommand('set_mute', true);
                 showToast('已切換為手機播放 (電腦端靜音)');
-                
             } else {
                 if(lbl) lbl.style.color = 'var(--text-main)';
                 if(volContainer) volContainer.style.display = 'flex';
@@ -1127,7 +1125,6 @@ function toggleStream() {
                 elAudio.src = '';
                 sendCommand('set_mute', false);
                 showToast('已恢復電腦端播放');
-                
                 sendCommand('set_mute', false);
             }
         }
@@ -1189,21 +1186,13 @@ function toggleStream() {
         }
         
         
-        let lastPauseTime = 0;
-        elAudio.addEventListener('pause', () => { lastPauseTime = Date.now(); });
-                        function handleUserPlay() {
-            window._lastUserAction = Date.now();
+        function handleUserPlay() {
             if (isStreaming && elAudio.paused) {
-                // 如果暫停超過 3 秒，iOS 很大機率已經中斷了 TCP 連線，直接 play() 會報錯導致 MediaSession 崩潰。
-                // 必須在這裡（使用者手勢允許的範圍內）強制重載音訊。
-                const isStale = Date.now() - lastPauseTime > 3000;
-                if (elAudio.error || isStale || elAudio.readyState < 3) {
-                    const pos = elAudio.currentTime;
+                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
+                if (elAudio.error) {
+                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
                     elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
                     elAudio.load();
-                    elAudio.addEventListener('loadedmetadata', () => { 
-                        if (pos > 0) elAudio.currentTime = pos; 
-                    }, { once: true });
                 }
                 let p = elAudio.play();
                 if (p !== undefined) {
@@ -1214,7 +1203,6 @@ function toggleStream() {
         }
 
         function handleUserPause() {
-            window._lastUserAction = Date.now();
             if (isStreaming && !elAudio.paused) {
                 elAudio.pause();
             }
@@ -1222,7 +1210,6 @@ function toggleStream() {
         }
 
         function handleUserTogglePlay() {
-            window._lastUserAction = Date.now();
             if (isStreaming) {
                 if (elAudio.paused) handleUserPlay();
                 else handleUserPause();
@@ -1293,7 +1280,7 @@ function toggleStream() {
                 }
 
                 // Sync streaming audio state
-                if (isStreaming && Date.now() - (window._lastUserAction || 0) > 3000) {
+                if (isStreaming) {
                     if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
                     else if (!data.is_playing && !elAudio.paused) elAudio.pause();
                     
@@ -1309,9 +1296,9 @@ function toggleStream() {
                     elTimeCur.innerText = formatTime(data.position);
                     elTimeTot.innerText = formatTime(data.duration);
                     
-                    // Only update position state if state just changed
-                    if (data.is_playing !== isPlaying) {
-                        updateMediaSessionPosition(data);
+                    // Only update position state occasionally or on play/pause
+                    if (Math.abs(data.position - elProgress.value) > 1000 || !data.is_playing) {
+                         updateMediaSessionPosition(data);
                     }
                 }
 
@@ -2316,5 +2303,5 @@ function toggleStream() {
         </div>
     </div>
 
-    </body>
+</body>
 </html>
