@@ -258,6 +258,7 @@
             flex-direction: column;
             gap: 8px;
             padding: 0 10px;
+            touch-action: pan-y;
         }
         .progress-bar {
             width: 100%;
@@ -266,11 +267,14 @@
             height: 6px;
             border-radius: 3px;
             outline: none;
+            touch-action: pan-y;
         }
         .progress-bar::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 30px;
+            height: 30px;
+            border: 8px solid transparent;
+            background-clip: padding-box;
             border-radius: 50%;
             background: var(--text-main);
             cursor: pointer;
@@ -1101,7 +1105,49 @@ const ICONS = {
         });
         
         // Update MediaSession metadata in pollState
-function toggleStream() {
+
+        // --- Auto Stall Recovery ---
+        let stallTimeout = null;
+        const STALL_LIMIT_MS = 5000;
+
+        function clearStallTimeout() {
+            if (stallTimeout) {
+                clearTimeout(stallTimeout);
+                stallTimeout = null;
+            }
+        }
+
+        function handleAudioStall() {
+            if (!isStreaming || elAudio.paused) return;
+            clearStallTimeout();
+            stallTimeout = setTimeout(() => {
+                if (!isStreaming || elAudio.paused) return;
+                console.log("Audio stalled for >5s. Auto-recovering...");
+                
+                const pos = elAudio.currentTime;
+                const currentUrl = new URL(elAudio.src, window.location.origin);
+                currentUrl.searchParams.set('_r', Date.now());
+                elAudio.src = currentUrl.toString();
+                
+                elAudio.load();
+                elAudio.addEventListener('loadedmetadata', () => {
+                    if (pos > 0) elAudio.currentTime = pos;
+                }, { once: true });
+                
+                let p = elAudio.play();
+                if (p !== undefined) {
+                    p.catch(e => console.log("Auto-recovery play err:", e));
+                }
+            }, STALL_LIMIT_MS);
+        }
+
+        elAudio.addEventListener('waiting', handleAudioStall);
+        elAudio.addEventListener('stalled', handleAudioStall);
+        elAudio.addEventListener('playing', clearStallTimeout);
+        elAudio.addEventListener('canplay', clearStallTimeout);
+        elAudio.addEventListener('pause', clearStallTimeout);
+
+        function toggleStream() {
             isStreaming = !isStreaming;
             const cb = document.getElementById('stream-checkbox');
             const lbl = document.getElementById('lbl-stream');
@@ -1675,6 +1721,87 @@ function toggleStream() {
             } catch (e) {}
         }
 
+        
+        // --- Virtual List Globals ---
+        window._playlistTracks = [];
+        window._playlistRendered = 0;
+        window._playlistSearchTerm = '';
+        window._playlistObserver = null;
+        window._queueDataCache = null; // To hold 'data' for rendering
+
+        function renderQueueChunk(reset = false) {
+            if (reset) {
+                window._playlistRendered = 0;
+                const items = elQueueContent.querySelectorAll('.track-item, #queue-scroll-sentinel');
+                items.forEach(el => el.remove());
+                if (window._playlistObserver) window._playlistObserver.disconnect();
+            }
+
+            if (!window._playlistObserver) {
+                window._playlistObserver = new IntersectionObserver(entries => {
+                    if (entries[0].isIntersecting) renderQueueChunk();
+                }, { rootMargin: '300px' });
+            }
+
+            const term = window._playlistSearchTerm.toLowerCase();
+            const filtered = window._playlistTracks.filter(t => 
+                (t.title || '').toLowerCase().includes(term) || 
+                (t.artist || '').toLowerCase().includes(term)
+            );
+
+            const chunk = filtered.slice(window._playlistRendered, window._playlistRendered + 100);
+            if (chunk.length === 0) return;
+
+            const frag = document.createDocumentFragment();
+            chunk.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'track-item' + (t.index === window._queueDataCache.current_index ? ' playing' : '');
+                if (window.isQueueSelectMode) div.style.cursor = 'default';
+                div.innerHTML = 
+                    <div class="q-checkbox-container" style="display: ; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
+                        <input type="checkbox" class="q-checkbox" value="" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
+                    </div>
+                    <div class="track-idx"></div>
+                    <div class="track-info-list">
+                        <div class="track-title-list"></div>
+                        <div class="track-artist-list"></div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="font-size:12px; color:rgba(255,255,255,0.5)"></div>
+                        <button onclick="event.stopPropagation(); downloadTrack();" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                        </button>
+                    </div>
+                ;
+                div.onclick = (e) => {
+                    if (window.isQueueSelectMode) {
+                        const cb = div.querySelector('.q-checkbox');
+                        if (cb) cb.checked = !cb.checked;
+                    } else {
+                        sendCommand('play_index', t.index);
+                    }
+                };
+                frag.appendChild(div);
+            });
+
+            const oldSentinel = document.getElementById('queue-scroll-sentinel');
+            if (oldSentinel) {
+                window._playlistObserver.unobserve(oldSentinel);
+                oldSentinel.remove();
+            }
+
+            elQueueContent.appendChild(frag);
+            window._playlistRendered += chunk.length;
+
+            if (window._playlistRendered < filtered.length) {
+                const sentinel = document.createElement('div');
+                sentinel.id = 'queue-scroll-sentinel';
+                sentinel.style.height = '20px';
+                elQueueContent.appendChild(sentinel);
+                window._playlistObserver.observe(sentinel);
+            }
+        }
+
         async function fetchPlaylist() {
             if (currentView !== 'queue') return;
             try {
@@ -1695,36 +1822,13 @@ function toggleStream() {
                         <button class="btn-top" onclick="deleteSelectedTracks()" id="btn-queue-delete" style="display: ${isQueueSelectMode ? 'block' : 'none'}; flex: 1; background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">刪除</button>
                     </div>
                 `;
-                data.tracks.forEach(t => {
-                    const div = document.createElement('div');
-                    div.className = 'track-item' + (t.index === data.current_index ? ' playing' : '');
-                    if (isQueueSelectMode) div.style.cursor = 'default';
-                    div.innerHTML = `
-                        <div class="q-checkbox-container" style="display: ${isQueueSelectMode ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
-                            <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
-                        </div>
-                        <div class="track-idx">${t.index + 1}</div>
-                        <div class="track-info-list">
-                            <div class="track-title-list">${t.title}</div>
-                            <div class="track-artist-list">${t.artist || '未知歌手'}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="font-size:12px; color:rgba(255,255,255,0.5)">${formatTime(t.duration)}</div>
-                            <button onclick="event.stopPropagation(); downloadTrack(${t.index});" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
-                            </button>
-                        </div>
-                    `;
-                    div.onclick = (e) => {
-                        if (isQueueSelectMode) {
-                            const cb = div.querySelector('.q-checkbox');
-                            if (cb) cb.checked = !cb.checked;
-                        } else {
-                            sendCommand('play_index', t.index);
-                        }
-                    };
-                    elQueueContent.appendChild(div);
-                });
+                
+                window._playlistTracks = data.tracks || [];
+                window._queueDataCache = data;
+                window._playlistSearchTerm = currentSearch || '';
+                
+                renderQueueChunk(true);
+                
                 if (currentSearch) {
                     const newSearchInput = document.getElementById('queue-search-input');
                     if (newSearchInput) {
@@ -1744,19 +1848,8 @@ function toggleStream() {
         }
         
         function filterQueue(term) {
-            term = term.toLowerCase();
-            const items = document.querySelectorAll('#queue-content .track-item');
-            items.forEach(el => {
-                const titleEl = el.querySelector('.track-title-list');
-                const artistEl = el.querySelector('.track-artist-list');
-                const title = titleEl ? titleEl.innerText.toLowerCase() : '';
-                const artist = artistEl ? artistEl.innerText.toLowerCase() : '';
-                if (title.includes(term) || artist.includes(term)) {
-                    el.style.display = 'flex';
-                } else {
-                    el.style.display = 'none';
-                }
-            });
+            window._playlistSearchTerm = term;
+            renderQueueChunk(true);
         }
 
         
