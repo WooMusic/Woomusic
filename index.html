@@ -673,7 +673,6 @@
     function getApiUrl(path) {
         return API_BASE + path;
     }
-    const SILENT_AUDIO_BASE64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
     // --- Pairing Modal UI ---
     function showPairingModal() {
@@ -803,6 +802,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 
 <body>
     <audio id="silent-audio"></audio>
+    <audio id="keep-alive-audio" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
     
 
     <!-- VIEW 1: PLAYER -->
@@ -1080,6 +1080,7 @@ const ICONS = {
         let isStreaming = false;
         let nextTrackTitle = "";
         const elAudio = document.getElementById('silent-audio');
+        const elKeepAlive = document.getElementById('keep-alive-audio');
 
         
         // --- BACKGROUND AUDIO FIX ---
@@ -1189,22 +1190,27 @@ function toggleStream() {
         
         function handleUserPlay() {
             if (isStreaming) {
-                elAudio.loop = false;
-                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
-                elAudio.load();
-                let p = elAudio.play();
-                if (p !== undefined) {
-                    p.catch(e => console.log("Play err:", e));
+                elKeepAlive.pause();
+                if (elAudio.paused) {
+                    // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
+                    if (elAudio.error) {
+                        // 只有在真的發生致命網路錯誤時，才嘗試強制重載
+                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
+                        elAudio.load();
+                    }
+                    let p = elAudio.play();
+                    if (p !== undefined) {
+                        p.catch(e => console.log("Play err:", e));
+                    }
                 }
             }
             sendCommand('toggle_play');
         }
 
         function handleUserPause() {
-            if (isStreaming) {
-                elAudio.src = SILENT_AUDIO_BASE64;
-                elAudio.loop = true;
-                elAudio.play().catch(e => {});
+            if (isStreaming && !elAudio.paused) {
+                elAudio.pause();
+                elKeepAlive.play().catch(e => {});
             }
             sendCommand('toggle_play');
         }
@@ -1282,16 +1288,12 @@ function toggleStream() {
                 // Sync streaming audio state
                 if (isStreaming) {
                     if (data.is_playing && elAudio.paused) {
-                        elAudio.loop = false;
-                        if(elAudio.src === SILENT_AUDIO_BASE64 || elAudio.src.endsWith(SILENT_AUDIO_BASE64)) {
-                            elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                        }
+                        elKeepAlive.pause();
                         elAudio.play().catch(e => {});
                     }
-                    else if (!data.is_playing && elAudio.src.indexOf('base64') === -1) {
-                        elAudio.src = SILENT_AUDIO_BASE64;
-                        elAudio.loop = true;
-                        elAudio.play().catch(e=>{});
+                    else if (!data.is_playing && !elAudio.paused) {
+                        elAudio.pause();
+                        elKeepAlive.play().catch(e => {});
                     }
                     
                     // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
