@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wajiabar3000!</title>
+    <title>Wajiabar3000!!</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -802,7 +802,6 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 
 <body>
     <audio id="silent-audio"></audio>
-    <audio id="keep-alive-audio" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
     
 
     <!-- VIEW 1: PLAYER -->
@@ -1080,7 +1079,6 @@ const ICONS = {
         let isStreaming = false;
         let nextTrackTitle = "";
         const elAudio = document.getElementById('silent-audio');
-        const elKeepAlive = document.getElementById('keep-alive-audio');
 
         
         // --- BACKGROUND AUDIO FIX ---
@@ -1189,16 +1187,11 @@ function toggleStream() {
         
         
         function handleUserPlay() {
-            ignoreStateUntil = Date.now() + 3000; // 給予3秒冷卻，忽略伺服器舊狀態
+            ignoreStateUntil = Date.now() + 3000;
             if (isStreaming) {
-                elKeepAlive.pause();
+                elAudio.muted = false; // 解除靜音
+                // 如果因為某些原因被暫停了，強制喚醒
                 if (elAudio.paused) {
-                    // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
-                    if (elAudio.error) {
-                        // 只有在真的發生致命網路錯誤時，才嘗試強制重載
-                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
-                        elAudio.load();
-                    }
                     let p = elAudio.play();
                     if (p !== undefined) {
                         p.catch(e => console.log("Play err:", e));
@@ -1209,10 +1202,9 @@ function toggleStream() {
         }
 
         function handleUserPause() {
-            ignoreStateUntil = Date.now() + 3000; // 給予3秒冷卻，忽略伺服器舊狀態
-            if (isStreaming && !elAudio.paused) {
-                elAudio.pause();
-                elKeepAlive.play().catch(e => {});
+            ignoreStateUntil = Date.now() + 3000;
+            if (isStreaming) {
+                elAudio.muted = true; // 直接靜音，不暫停
             }
             sendCommand('toggle_play');
         }
@@ -1289,13 +1281,12 @@ function toggleStream() {
 
                 // Sync streaming audio state
                 if (isStreaming && Date.now() > ignoreStateUntil) {
-                    if (data.is_playing && elAudio.paused) {
-                        elKeepAlive.pause();
-                        elAudio.play().catch(e => {});
+                    if (data.is_playing && (elAudio.paused || elAudio.muted)) {
+                        elAudio.muted = false;
+                        if (elAudio.paused) elAudio.play().catch(e => {});
                     }
-                    else if (!data.is_playing && !elAudio.paused) {
-                        elAudio.pause();
-                        elKeepAlive.play().catch(e => {});
+                    else if (!data.is_playing && !elAudio.paused && !elAudio.muted) {
+                        elAudio.muted = true; // 狀態同步時也使用靜音代替暫停
                     }
                     
                     // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
@@ -1311,7 +1302,6 @@ function toggleStream() {
                     elTimeCur.innerText = formatTime(data.position);
                     elTimeTot.innerText = formatTime(data.duration);
                     
-                    // 只有當進度誤差大於 3 秒，或是播放狀態改變時，才更新系統鎖定畫面，避免暫停時頻繁呼叫導致 iOS 強制關閉
                     if (Math.abs(data.position - oldVal) > 3000 || isPlaying !== data.is_playing) {
                          updateMediaSessionPosition(data);
                     }
@@ -2136,17 +2126,8 @@ function toggleStream() {
         let ignoreStateUntil = 0;
         let audioInit = false;
         function initAudio() {
-            if (!audioInit) {
-                if (!isStreaming) elAudio.play().catch(e => console.log("Audio init error", e));
-                
-                // 預熱隱形播放器 (Priming)，獲取 iOS 背景播放權限
-                if (typeof elKeepAlive !== 'undefined') {
-                    let p = elKeepAlive.play();
-                    if (p !== undefined) {
-                        p.then(() => elKeepAlive.pause()).catch(e => console.log("KeepAlive init error", e));
-                    }
-                }
-                
+            if (!audioInit && !isStreaming) {
+                elAudio.play().catch(e => console.log("Audio init error", e));
                 audioInit = true;
             }
         }
