@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wajiabar3000</title>
+    <title>Wajiabar30000</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1191,8 +1191,11 @@ function toggleStream() {
         function handleUserPlay() {
             ignoreStateUntil = Date.now() + 3000;
             if (isStreaming) {
-                elKeepAlive.pause();
-                if (elAudio.paused) {
+                if (typeof elKeepAlive !== 'undefined') elKeepAlive.pause();
+                
+                elAudio.muted = false; // 解除靜音，瞬間出聲
+                
+                if (elAudio.paused) { // 只有在意外暫停時才需要重新 play()
                     if (elAudio.error) {
                         elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
                         elAudio.load();
@@ -1209,9 +1212,11 @@ function toggleStream() {
 
         function handleUserPause() {
             ignoreStateUntil = Date.now() + 3000;
-            if (isStreaming && !elAudio.paused) {
-                elAudio.pause();
-                elKeepAlive.play().catch(e => {});
+            if (isStreaming) {
+                elAudio.muted = true; // 主音樂靜音，保持網路連線不斷
+                if (typeof elKeepAlive !== 'undefined') {
+                    elKeepAlive.play().catch(e => {}); // 播放10秒無聲，騙過iOS保留畫面
+                }
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = 'paused';
                     updateMediaSessionMetadata({
@@ -1295,14 +1300,15 @@ function toggleStream() {
 
                 // Sync streaming audio state
                 if (isStreaming && Date.now() > ignoreStateUntil) {
-                    if (data.is_playing && elAudio.paused) {
-                        elKeepAlive.pause();
-                        elAudio.play().catch(e => {});
+                    if (data.is_playing && (elAudio.paused || elAudio.muted)) {
+                        if (typeof elKeepAlive !== 'undefined') elKeepAlive.pause();
+                        elAudio.muted = false;
+                        if (elAudio.paused) elAudio.play().catch(e => {});
                         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                     }
-                    else if (!data.is_playing && !elAudio.paused) {
-                        elAudio.pause();
-                        elKeepAlive.play().catch(e => {});
+                    else if (!data.is_playing && (!elAudio.paused && !elAudio.muted)) {
+                        elAudio.muted = true; // 電腦端暫停時，手機也進靜音
+                        if (typeof elKeepAlive !== 'undefined') elKeepAlive.play().catch(e => {});
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'paused';
                             updateMediaSessionMetadata(data);
