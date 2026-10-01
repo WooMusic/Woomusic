@@ -673,6 +673,7 @@
     function getApiUrl(path) {
         return API_BASE + path;
     }
+    const SILENT_AUDIO_BASE64 = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
 
     // --- Pairing Modal UI ---
     function showPairingModal() {
@@ -1187,13 +1188,10 @@ function toggleStream() {
         
         
         function handleUserPlay() {
-            if (isStreaming && elAudio.paused) {
-                // 針對 iOS PWA 模式：絕不可在背景隨意更改 src，否則會被系統攔截網路請求導致永久靜音
-                if (elAudio.error) {
-                    // 只有在真的發生致命網路錯誤時，才嘗試強制重載
-                    elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
-                    elAudio.load();
-                }
+            if (isStreaming) {
+                elAudio.loop = false;
+                elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle || '') + "&_r=" + Date.now();
+                elAudio.load();
                 let p = elAudio.play();
                 if (p !== undefined) {
                     p.catch(e => console.log("Play err:", e));
@@ -1203,8 +1201,10 @@ function toggleStream() {
         }
 
         function handleUserPause() {
-            if (isStreaming && !elAudio.paused) {
-                elAudio.pause();
+            if (isStreaming) {
+                elAudio.src = SILENT_AUDIO_BASE64;
+                elAudio.loop = true;
+                elAudio.play().catch(e => {});
             }
             sendCommand('toggle_play');
         }
@@ -1281,8 +1281,18 @@ function toggleStream() {
 
                 // Sync streaming audio state
                 if (isStreaming) {
-                    if (data.is_playing && elAudio.paused) elAudio.play().catch(e => {});
-                    else if (!data.is_playing && !elAudio.paused) elAudio.pause();
+                    if (data.is_playing && elAudio.paused) {
+                        elAudio.loop = false;
+                        if(elAudio.src === SILENT_AUDIO_BASE64 || elAudio.src.endsWith(SILENT_AUDIO_BASE64)) {
+                            elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
+                        }
+                        elAudio.play().catch(e => {});
+                    }
+                    else if (!data.is_playing && elAudio.src.indexOf('base64') === -1) {
+                        elAudio.src = SILENT_AUDIO_BASE64;
+                        elAudio.loop = true;
+                        elAudio.play().catch(e=>{});
+                    }
                     
                     // Resync time if drifted heavily (increased to 10s to prevent constant buffering on slow networks)
                     if (!elAudio.seeking && Math.abs((elAudio.currentTime * 1000) - data.position) > 10000) {
@@ -1291,13 +1301,13 @@ function toggleStream() {
                 }
 
                 if (!isDraggingProgress) {
-                    elProgress.max = data.duration || 100;
                     let oldVal = parseInt(elProgress.value) || 0;
+                    elProgress.max = data.duration || 100;
                     elProgress.value = data.position || 0;
                     elTimeCur.innerText = formatTime(data.position);
                     elTimeTot.innerText = formatTime(data.duration);
                     
-                    // Only update position state occasionally or on play/pause
+                    // 只有當進度誤差大於 3 秒，或是播放狀態改變時，才更新系統鎖定畫面，避免暫停時頻繁呼叫導致 iOS 強制關閉
                     if (Math.abs(data.position - oldVal) > 3000 || isPlaying !== data.is_playing) {
                          updateMediaSessionPosition(data);
                     }
