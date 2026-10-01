@@ -2133,8 +2133,17 @@ function toggleStream() {
         // Audio initialization for iOS
         let audioInit = false;
         function initAudio() {
-            if (!audioInit && !isStreaming) {
-                elAudio.play().catch(e => console.log("Audio init error", e));
+            if (!audioInit) {
+                if (!isStreaming) elAudio.play().catch(e => console.log("Audio init error", e));
+                
+                // 預熱隱形播放器 (Priming)，獲取 iOS 背景播放權限
+                if (typeof elKeepAlive !== 'undefined') {
+                    let p = elKeepAlive.play();
+                    if (p !== undefined) {
+                        p.then(() => elKeepAlive.pause()).catch(e => console.log("KeepAlive init error", e));
+                    }
+                }
+                
                 audioInit = true;
             }
         }
