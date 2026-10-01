@@ -1292,12 +1292,13 @@ function toggleStream() {
 
                 if (!isDraggingProgress) {
                     elProgress.max = data.duration || 100;
+                    let oldVal = parseInt(elProgress.value) || 0;
                     elProgress.value = data.position || 0;
                     elTimeCur.innerText = formatTime(data.position);
                     elTimeTot.innerText = formatTime(data.duration);
                     
                     // Only update position state occasionally or on play/pause
-                    if (Math.abs(data.position - elProgress.value) > 1000 || !data.is_playing) {
+                    if (Math.abs(data.position - oldVal) > 3000 || isPlaying !== data.is_playing) {
                          updateMediaSessionPosition(data);
                     }
                 }
