@@ -778,7 +778,7 @@
                         await showPairingError("找不到此機碼對應的主機\n請確認電腦端已開啟 Wajiabar3000");
                         location.reload();
                     }
-                } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+                } catch (e) {
                     await showPairingError("連線失敗，請檢查網路連線");
                 }
             }
@@ -833,7 +833,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
             <img id="cover" class="cover-image" src="/api/cover" onerror="this.style.display='none'">
         </div>
         
-        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px; margin-top: 48px;">
+        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px;">
             <div class="text-group">
                 <div id="title" class="title">讀取中...</div>
                 <div id="artist" class="artist">等待連接</div>
@@ -1118,6 +1118,7 @@ const ICONS = {
         }
 
         function handleAudioStall() {
+            if (typeof isStreaming === 'undefined' || typeof elAudio === 'undefined') return;
             if (!isStreaming || elAudio.paused) return;
             clearStallTimeout();
             stallTimeout = setTimeout(() => {
@@ -1415,7 +1416,7 @@ const ICONS = {
                     if (currentView === 'queue') fetchPlaylist();
                 }
 
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 document.getElementById("title").innerText = "連線失敗 (主機無回應)"; 
                 document.getElementById("artist").innerHTML = `<button onclick="localStorage.removeItem('wajiabar_device_id'); location.href=location.pathname;" style="padding:6px 12px;background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:5px;font-size:12px;">重新輸入配對碼</button>`;
                 console.error("Fetch state error:", e);
@@ -1498,7 +1499,7 @@ const ICONS = {
                 const btnSelectAll = document.getElementById('fs-select-all-btn');
                 if (btnSelectAll) btnSelectAll.style.display = hasCheckboxes ? "block" : "none";
 
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 document.getElementById('fs-content').innerHTML = "讀取失敗";
             }
         }
@@ -1654,7 +1655,7 @@ const ICONS = {
                     showToast(resData.message || "刪除失敗");
                     return;
                 }
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 console.error(e);
             }
             setTimeout(fetchPlaylistsList, 500);
@@ -1718,16 +1719,15 @@ const ICONS = {
                         togglePlaylistExpand(p.id, div);
                     }
                 });
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);}
+            } catch (e) {}
         }
 
         
-        // --- Virtual List Globals ---
         window._playlistTracks = [];
         window._playlistRendered = 0;
         window._playlistSearchTerm = '';
         window._playlistObserver = null;
-        window._queueDataCache = null; // To hold 'data' for rendering
+        window._queueDataCache = null;
 
         function renderQueueChunk(reset = false) {
             if (reset) {
@@ -1737,13 +1737,13 @@ const ICONS = {
                 if (window._playlistObserver) window._playlistObserver.disconnect();
             }
 
-            if (!window._playlistObserver) {
+            if (!window._playlistObserver && typeof IntersectionObserver !== 'undefined') {
                 window._playlistObserver = new IntersectionObserver(entries => {
                     if (entries[0].isIntersecting) renderQueueChunk();
                 }, { rootMargin: '300px' });
             }
 
-            const term = window._playlistSearchTerm.toLowerCase();
+            const term = (window._playlistSearchTerm || '').toLowerCase();
             const filtered = window._playlistTracks.filter(t => 
                 (t.title || '').toLowerCase().includes(term) || 
                 (t.artist || '').toLowerCase().includes(term)
@@ -1755,26 +1755,30 @@ const ICONS = {
             const frag = document.createDocumentFragment();
             chunk.forEach(t => {
                 const div = document.createElement('div');
-                div.className = 'track-item' + (t.index === window._queueDataCache.current_index ? ' playing' : '');
-                if (typeof isQueueSelectMode !== "undefined" && isQueueSelectMode) div.style.cursor = 'default';
-                div.innerHTML = 
-                    <div class="q-checkbox-container" style="display: ; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
-                        <input type="checkbox" class="q-checkbox" value="" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
+                const isPlaying = window._queueDataCache && (t.index === window._queueDataCache.current_index);
+                div.className = 'track-item' + (isPlaying ? ' playing' : '');
+                
+                const isSel = (typeof isQueueSelectMode !== 'undefined' && isQueueSelectMode);
+                if (isSel) div.style.cursor = 'default';
+                
+                div.innerHTML = `
+                    <div class="q-checkbox-container" style="display: ${isSel ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
+                        <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
                     </div>
-                    <div class="track-idx"></div>
+                    <div class="track-idx">${t.index + 1}</div>
                     <div class="track-info-list">
-                        <div class="track-title-list"></div>
-                        <div class="track-artist-list"></div>
+                        <div class="track-title-list">${t.title}</div>
+                        <div class="track-artist-list">${t.artist || '未知歌手'}</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <div style="font-size:12px; color:rgba(255,255,255,0.5)"></div>
-                        <button onclick="event.stopPropagation(); downloadTrack();" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
+                        <div style="font-size:12px; color:rgba(255,255,255,0.5)">${typeof formatTime === 'function' ? formatTime(t.duration) : t.duration}</div>
+                        <button onclick="event.stopPropagation(); downloadTrack(${t.index});" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
                         </button>
                     </div>
-                ;
+                `;
                 div.onclick = (e) => {
-                    if (typeof isQueueSelectMode !== "undefined" && isQueueSelectMode) {
+                    if (typeof isQueueSelectMode !== 'undefined' && isQueueSelectMode) {
                         const cb = div.querySelector('.q-checkbox');
                         if (cb) cb.checked = !cb.checked;
                     } else {
@@ -1786,14 +1790,14 @@ const ICONS = {
 
             const oldSentinel = document.getElementById('queue-scroll-sentinel');
             if (oldSentinel) {
-                window._playlistObserver.unobserve(oldSentinel);
+                if(window._playlistObserver) window._playlistObserver.unobserve(oldSentinel);
                 oldSentinel.remove();
             }
 
             elQueueContent.appendChild(frag);
             window._playlistRendered += chunk.length;
 
-            if (window._playlistRendered < filtered.length) {
+            if (window._playlistRendered < filtered.length && window._playlistObserver) {
                 const sentinel = document.createElement('div');
                 sentinel.id = 'queue-scroll-sentinel';
                 sentinel.style.height = '20px';
@@ -1826,7 +1830,6 @@ const ICONS = {
                 window._playlistTracks = data.tracks || [];
                 window._queueDataCache = data;
                 window._playlistSearchTerm = currentSearch || '';
-                
                 renderQueueChunk(true);
                 
                 if (currentSearch) {
@@ -1837,7 +1840,7 @@ const ICONS = {
                     }
                     filterQueue(currentSearch);
                 }
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);}
+            } catch (e) {}
         }
         
         
@@ -1849,7 +1852,7 @@ const ICONS = {
         
         function filterQueue(term) {
             window._playlistSearchTerm = term;
-            renderQueueChunk(true);
+            if(typeof renderQueueChunk === 'function') renderQueueChunk(true);
         }
 
         
@@ -1967,7 +1970,7 @@ const ICONS = {
                         }
                     }
                 }
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 showToast("程式錯誤: " + e.message);
             }
             btn.innerText = "打包下載";
@@ -2041,7 +2044,7 @@ const ICONS = {
                     `;
                 });
                 container.innerHTML = html;
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 container.innerHTML = '<div style="padding: 10px; color: red;">讀取失敗</div>';
             }
         }
@@ -2129,7 +2132,7 @@ const ICONS = {
                         }
                     }
                 }
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 console.error(e);
                 showToast("程式錯誤: " + e.message);
             }
@@ -2178,7 +2181,7 @@ const ICONS = {
                 }
                 
                 document.getElementById('btn-download-all').innerText = "打包下載";
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e);
+            } catch (e) {
                 console.error(e);
                 showToast("程式錯誤: " + e.message);
                 document.getElementById('btn-download-all').innerText = "打包下載";
@@ -2192,7 +2195,7 @@ const ICONS = {
                 document.getElementById('cf-enable').checked = data.cf_enabled;
                 document.getElementById('cf-duration').value = Math.round(data.cf_duration / 1000);
                 document.getElementById('r128-enable').checked = data.r128_enabled;
-            } catch (e) { document.getElementById("title").innerText = "Error: " + e.message; console.error(e); console.log(e); }
+            } catch (e) { console.log(e); }
         }
         
         async function updateAudioSettings() {
