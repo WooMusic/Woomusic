@@ -1189,6 +1189,7 @@ function toggleStream() {
         
         
         function handleUserPlay() {
+            ignoreStateUntil = Date.now() + 3000; // 給予3秒冷卻，忽略伺服器舊狀態
             if (isStreaming) {
                 elKeepAlive.pause();
                 if (elAudio.paused) {
@@ -1208,6 +1209,7 @@ function toggleStream() {
         }
 
         function handleUserPause() {
+            ignoreStateUntil = Date.now() + 3000; // 給予3秒冷卻，忽略伺服器舊狀態
             if (isStreaming && !elAudio.paused) {
                 elAudio.pause();
                 elKeepAlive.play().catch(e => {});
@@ -1286,7 +1288,7 @@ function toggleStream() {
                 }
 
                 // Sync streaming audio state
-                if (isStreaming) {
+                if (isStreaming && Date.now() > ignoreStateUntil) {
                     if (data.is_playing && elAudio.paused) {
                         elKeepAlive.pause();
                         elAudio.play().catch(e => {});
@@ -2131,6 +2133,7 @@ function toggleStream() {
         }
 
         // Audio initialization for iOS
+        let ignoreStateUntil = 0;
         let audioInit = false;
         function initAudio() {
             if (!audioInit) {
