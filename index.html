@@ -829,7 +829,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
             <img id="cover" class="cover-image" src="/api/cover" onerror="this.style.display='none'">
         </div>
         
-        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px;">
+        <div class="info" style="flex-shrink: 0; width: 85%; max-width: 400px; margin-top: 32px;">
             <div class="text-group">
                 <div id="title" class="title">讀取中...</div>
                 <div id="artist" class="artist">等待連接</div>
@@ -1298,9 +1298,9 @@ function toggleStream() {
                     elTimeCur.innerText = formatTime(data.position);
                     elTimeTot.innerText = formatTime(data.duration);
                     
-                    // Only update position state occasionally or on play/pause
-                    if (Math.abs(data.position - elProgress.value) > 1000 || !data.is_playing) {
-                         updateMediaSessionPosition(data);
+                    // Only update position state if state just changed
+                    if (data.is_playing !== isPlaying) {
+                        updateMediaSessionPosition(data);
                     }
                 }
 
