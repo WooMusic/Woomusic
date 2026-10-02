@@ -1112,6 +1112,13 @@ function toggleStream() {
             sendCommand('set_streaming_state', isStreaming);
             
             if (isStreaming) {
+                // 通知主機關閉無縫混音與 R128 音量均化
+                fetch('/api/audio_settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ cf_enabled: false, r128_enabled: false })
+                });
+
                 if(lbl) lbl.style.color = 'var(--accent)';
                 if(volContainer) volContainer.style.display = 'none';
                 elAudio.volume = 1.0;
