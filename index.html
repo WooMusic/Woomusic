@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wajiabar3000</title>
+    <title>Wajiabar3067800</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1253,28 +1253,6 @@ function toggleStream() {
                 const res = await fetch('/api/state', { cache: 'no-store' });
                 const data = await res.json();
                 
-                // Sync streaming toggle state from server
-                if (data.is_streaming !== undefined && isStreaming !== data.is_streaming) {
-                    isStreaming = data.is_streaming;
-                    const cb = document.getElementById('stream-checkbox');
-                    const lbl = document.getElementById('lbl-stream');
-                    const volContainer = document.querySelector('.volume-container');
-                    if(cb) cb.checked = isStreaming;
-                    
-                    if (isStreaming) {
-                        if(lbl) lbl.style.color = 'var(--accent)';
-                        if(volContainer) volContainer.style.display = 'none';
-                        elAudio.volume = 1.0;
-                        elAudio.src = getApiUrl('/api/stream?t=') + encodeURIComponent(currentTrackTitle);
-                        if (data.is_playing) elAudio.play().catch(e => console.log(e));
-                    } else {
-                        if(lbl) lbl.style.color = 'var(--text-main)';
-                        if(volContainer) volContainer.style.display = 'flex';
-                        elAudio.pause();
-                        elAudio.src = '';
-                    }
-                }
-                
                 if (currentTrackTitle !== data.title) {
                     currentTrackTitle = data.title;
                     elTitle.innerText = data.title;
@@ -1455,14 +1433,48 @@ function toggleStream() {
             document.getElementById('fs-modal').classList.add('open');
             loadFs("");
         }
+        let currentFsPwd = "";
         function closeFsModal() {
             document.getElementById('fs-modal').classList.remove('open');
+            currentFsPwd = ""; // Reset password on close so it asks again next time
         }
         
         async function loadFs(path) {
             document.getElementById('fs-content').innerHTML = "讀取中...";
             try {
-                const res = await fetch('/api/fs?path=' + encodeURIComponent(path), { cache: 'no-store' });
+                let url = '/api/fs?path=' + encodeURIComponent(path);
+                if (currentFsPwd) {
+                    url += '&pwd=' + encodeURIComponent(currentFsPwd);
+                }
+                const res = await fetch(url, { cache: 'no-store' });
+                
+                if (res.status === 403) {
+                    const errorData = await res.json();
+                    if (errorData.reason === "disabled") {
+                        closeFsModal();
+                        document.querySelector('#forbidden-modal h3').innerText = "要求已被拒絕";
+                        document.querySelector('#forbidden-modal p').innerText = "檔案持有者未開放檢視";
+                        document.getElementById('forbidden-modal').style.display = 'block';
+                        setTimeout(() => { document.getElementById('forbidden-modal').style.display = 'none'; }, 2500);
+                        return;
+                    } else if (errorData.reason === "password") {
+                        closeFsModal();
+                        document.getElementById('password-modal-msg').innerText = "本機檔案瀏覽需要密碼";
+                        document.getElementById('password-input').value = "";
+                        document.getElementById('password-modal').style.display = 'block';
+                        window._pwdConfirm = (p) => {
+                            currentFsPwd = p;
+                            document.getElementById('password-modal').style.display = 'none';
+                            openFsModal(currentTargetPid);
+                        };
+                        window._pwdCancel = () => {
+                            currentFsPwd = "";
+                            document.getElementById('password-modal').style.display = 'none';
+                        };
+                        return;
+                    }
+                }
+                
                 const data = await res.json();
                 fsCurrentPath = data.path;
                 document.getElementById('fs-current-path').innerText = fsCurrentPath || "我的電腦";
@@ -2226,6 +2238,8 @@ function toggleStream() {
                 window.location.href = dlUrl;
                 return true;
             } else if (data.forbidden) {
+                document.querySelector('#forbidden-modal h3').innerText = "下載已被拒絕";
+                document.querySelector('#forbidden-modal p').innerText = "檔案持有者未開放下載";
                 document.getElementById('forbidden-modal').style.display = 'block';
                 return false;
             } else if (data.need_password) {
