@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wajiabar30000</title>
+    <title>Wajiabar300</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1083,6 +1083,31 @@ const ICONS = {
         const elKeepAlive = document.getElementById('keep-alive-audio');
 
         
+        
+        // --- IOS PWA ULTIMATE BACKGROUND HACK ---
+        let unlockAudioCtx;
+        function unlockIOSAudio() {
+            if (!unlockAudioCtx) {
+                unlockAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (unlockAudioCtx.state === 'suspended') {
+                unlockAudioCtx.resume();
+            }
+            // Create an endless silent oscillator
+            if (!window.iosSilentOsc) {
+                let osc = unlockAudioCtx.createOscillator();
+                let gain = unlockAudioCtx.createGain();
+                gain.gain.value = 0.0001; // nearly absolute silence, but non-zero to trick aggressive iOS versions
+                osc.connect(gain);
+                gain.connect(unlockAudioCtx.destination);
+                osc.start();
+                window.iosSilentOsc = osc;
+            }
+        }
+        
+        document.addEventListener('touchstart', unlockIOSAudio, {once:true});
+        document.addEventListener('click', unlockIOSAudio, {once:true});
+
         // --- BACKGROUND AUDIO FIX ---
         if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('play', handleUserPlay);
@@ -1191,7 +1216,7 @@ function toggleStream() {
         function handleUserPlay() {
             ignoreStateUntil = Date.now() + 3000;
             if (isStreaming) {
-                if (typeof elKeepAlive !== 'undefined') elKeepAlive.pause();
+                // elKeepAlive.pause();
                 
                 elAudio.muted = false; // 解除靜音，瞬間出聲
                 
@@ -1214,7 +1239,7 @@ function toggleStream() {
             ignoreStateUntil = Date.now() + 3000;
             if (isStreaming) {
                 elAudio.muted = true; // 主音樂靜音，保持網路連線不斷
-                if (typeof elKeepAlive !== 'undefined') {
+                if (false) {
                     elKeepAlive.play().catch(e => {}); // 播放10秒無聲，騙過iOS保留畫面
                 }
                 if ('mediaSession' in navigator) {
@@ -1301,14 +1326,14 @@ function toggleStream() {
                 // Sync streaming audio state
                 if (isStreaming && Date.now() > ignoreStateUntil) {
                     if (data.is_playing && (elAudio.paused || elAudio.muted)) {
-                        if (typeof elKeepAlive !== 'undefined') elKeepAlive.pause();
+                        // elKeepAlive.pause();
                         elAudio.muted = false;
                         if (elAudio.paused) elAudio.play().catch(e => {});
                         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                     }
                     else if (!data.is_playing && (!elAudio.paused && !elAudio.muted)) {
                         elAudio.muted = true; // 電腦端暫停時，手機也進靜音
-                        if (typeof elKeepAlive !== 'undefined') elKeepAlive.play().catch(e => {});
+                        // elKeepAlive.play();
                         if ('mediaSession' in navigator) {
                             navigator.mediaSession.playbackState = 'paused';
                             updateMediaSessionMetadata(data);
@@ -2153,8 +2178,9 @@ function toggleStream() {
         let audioInit = false;
         function initAudio() {
             if (!audioInit) {
+                unlockIOSAudio();
                 if (!isStreaming) elAudio.play().catch(e => console.log("Audio init error", e));
-                if (typeof elKeepAlive !== 'undefined') {
+                if (false) {
                     let p = elKeepAlive.play();
                     if (p !== undefined) {
                         p.then(() => elKeepAlive.pause()).catch(e => {});
