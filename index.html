@@ -764,7 +764,7 @@
             }
             if (deviceId) {
                 try {
-                    const res = await originalFetch('https://wajiabar3000-default-rtdb.firebaseio.com/devices/' + deviceId + '.json');
+                    const res = await originalFetch('https://wowmucis-7b986-default-rtdb.firebaseio.com/devices/' + deviceId + '.json');
                     const data = await res.json();
                     if (data && data.url) {
                         API_BASE = data.url;
