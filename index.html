@@ -889,6 +889,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
     <div id="view-settings" class="view" style="padding: env(safe-area-inset-top) 20px 20px;">
         <div style="padding: 20px 0; font-size: 24px; font-weight: bold;">設定</div>
         
+        <div class="settings-group-title" style="padding: 10px 0 5px 0; font-size: 16px; font-weight: bold; color: var(--text-sub);">Web Bar</div>
         <div class="settings-section">
             <div class="settings-row">
                 <div>
@@ -922,6 +923,7 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
                 </div>
             </div>
         </div>
+        <div class="settings-group-title" style="padding: 15px 0 5px 0; font-size: 16px; font-weight: bold; color: var(--text-sub);">遙控器(串流自動關閉)</div>
         <div class="settings-section">
             <div class="settings-row">
                 <div>
@@ -954,6 +956,56 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
                 </label>
             </div>
         </div>
+        <div class="settings-group-title" style="padding: 15px 0 5px 0; font-size: 16px; font-weight: bold; color: var(--text-sub);">YT下載設定</div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">保留下載檔案</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">不隨清單刪除</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="preserve-yt-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">開啟程式續接下載</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">下次開啟時自動恢復下載</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="auto-resume-yt-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">剪除廢話</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">下載前須開啟 (SponsorBlock)</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="sponsorblock-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">音質強化</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">下載前須開啟</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="audio-enhance-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
+
     </div>
 
     <!-- BOTTOM NAV -->
@@ -1363,6 +1415,10 @@ function toggleStream() {
                         if (durLabel) durLabel.innerText = Math.round(data.cf_duration / 1000) + 's';
                     }
                     document.getElementById('r128-enable').checked = data.r128_enabled;
+                    if (document.getElementById('preserve-yt-enable')) document.getElementById('preserve-yt-enable').checked = data.preserve_enabled;
+                    if (document.getElementById('auto-resume-yt-enable')) document.getElementById('auto-resume-yt-enable').checked = data.auto_resume_enabled;
+                    if (document.getElementById('sponsorblock-enable')) document.getElementById('sponsorblock-enable').checked = data.sponsorblock_enabled;
+                    if (document.getElementById('audio-enhance-enable')) document.getElementById('audio-enhance-enable').checked = data.audio_enhance_enabled;
                 }
 
                 if (data.queue_length !== currentQueueLength) {
@@ -2149,20 +2205,34 @@ function toggleStream() {
                 document.getElementById('cf-enable').checked = data.cf_enabled;
                 document.getElementById('cf-duration').value = Math.round(data.cf_duration / 1000);
                 document.getElementById('r128-enable').checked = data.r128_enabled;
+                    if (document.getElementById('preserve-yt-enable')) document.getElementById('preserve-yt-enable').checked = data.preserve_enabled;
+                    if (document.getElementById('auto-resume-yt-enable')) document.getElementById('auto-resume-yt-enable').checked = data.auto_resume_enabled;
+                    if (document.getElementById('sponsorblock-enable')) document.getElementById('sponsorblock-enable').checked = data.sponsorblock_enabled;
+                    if (document.getElementById('audio-enhance-enable')) document.getElementById('audio-enhance-enable').checked = data.audio_enhance_enabled;
             } catch (e) { console.log(e); }
         }
         
-        async function updateAudioSettings() {
+        async async function updateAudioSettings() {
             const cf_enabled = document.getElementById('cf-enable').checked;
             const cf_duration = document.getElementById('cf-duration').value;
             const r128_enabled = document.getElementById('r128-enable').checked;
+            
+            const preserve_enabled = document.getElementById('preserve-yt-enable') ? document.getElementById('preserve-yt-enable').checked : false;
+            const auto_resume_enabled = document.getElementById('auto-resume-yt-enable') ? document.getElementById('auto-resume-yt-enable').checked : false;
+            const sponsorblock_enabled = document.getElementById('sponsorblock-enable') ? document.getElementById('sponsorblock-enable').checked : false;
+            const audio_enhance_enabled = document.getElementById('audio-enhance-enable') ? document.getElementById('audio-enhance-enable').checked : false;
+            
             await fetch('/api/audio_settings', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     cf_enabled: cf_enabled, 
                     cf_duration: parseInt(cf_duration) * 1000,
-                    r128_enabled: r128_enabled
+                    r128_enabled: r128_enabled,
+                    preserve_enabled: preserve_enabled,
+                    auto_resume_enabled: auto_resume_enabled,
+                    sponsorblock_enabled: sponsorblock_enabled,
+                    audio_enhance_enabled: audio_enhance_enabled
                 })
             });
         }
