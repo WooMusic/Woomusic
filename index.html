@@ -1120,6 +1120,25 @@ const ICONS = {
         let currentFav = null;
         let isPlaying = false;
 
+let wakeLock = null;
+async function checkWakeLock(isPlaying) {
+    if (!('wakeLock' in navigator)) return;
+    try {
+        if (isPlaying && !wakeLock) {
+            wakeLock = await navigator.wakeLock.request('screen');
+        } else if (!isPlaying && wakeLock) {
+            wakeLock.release().then(() => { wakeLock = null; });
+        }
+    } catch (err) { console.error('WakeLock error:', err); }
+}
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isPlaying) {
+        wakeLock = null;
+        checkWakeLock(true);
+    }
+});
+
+
         function formatTime(ms) {
             if (!ms || isNaN(ms)) return "0:00";
             let s = Math.floor(ms / 1000);
@@ -1298,7 +1317,105 @@ function toggleStream() {
         
         let isFetchingState = false;
         
-        async function fetchState() {
+        
+let activeDownloads = [];
+let currentDownloadInfo = {};
+
+async function fetchDownloads() {
+    try {
+        const res = await fetch('/api/downloads', { cache: 'no-store' });
+        const data = await res.json();
+        currentDownloadInfo = data;
+        activeDownloads = data.queue || [];
+        updateDownloadProgressUI();
+    } catch(e) {}
+    setTimeout(fetchDownloads, 1500);
+}
+fetchDownloads();
+
+function updateDownloadProgressUI() {
+    const tracks = document.querySelectorAll('.track-item');
+    tracks.forEach(track => {
+        // Only target items with track-info-list
+        const titleEl = track.querySelector('.track-title-list');
+        if (!titleEl) return;
+        
+        let title = titleEl.innerText;
+        let isDownloading = false;
+        let isCurrentDownload = false;
+        
+        for (let dt of activeDownloads) {
+            if (dt.includes(title) || title.includes(dt)) {
+                isDownloading = true;
+                if (currentDownloadInfo.title === dt) {
+                    isCurrentDownload = true;
+                }
+                break;
+            }
+        }
+        
+        if (isDownloading) {
+            track.style.opacity = '0.5';
+            track.style.pointerEvents = 'none';
+            track.style.filter = 'grayscale(100%)';
+            let progressContainer = track.querySelector('.dl-progress-container');
+            if (!progressContainer) {
+                progressContainer = document.createElement('div');
+                progressContainer.className = 'dl-progress-container';
+                progressContainer.style.width = '100%';
+                progressContainer.style.height = '4px';
+                progressContainer.style.background = 'var(--border)';
+                progressContainer.style.marginTop = '8px';
+                progressContainer.style.borderRadius = '2px';
+                progressContainer.style.overflow = 'hidden';
+                
+                const bar = document.createElement('div');
+                bar.className = 'dl-progress-bar';
+                bar.style.height = '100%';
+                bar.style.width = '0%';
+                bar.style.background = 'var(--accent)';
+                bar.style.transition = 'width 0.3s';
+                
+                const text = document.createElement('div');
+                text.className = 'dl-progress-text';
+                text.style.fontSize = '10px';
+                text.style.color = 'var(--accent)';
+                text.style.marginTop = '2px';
+                text.innerText = '等待中...';
+                
+                progressContainer.appendChild(bar);
+                
+                const infoList = track.querySelector('.track-info-list');
+                if (infoList) {
+                    infoList.appendChild(progressContainer);
+                    infoList.appendChild(text);
+                }
+            }
+            
+            const bar = track.querySelector('.dl-progress-bar');
+            const text = track.querySelector('.dl-progress-text');
+            if (isCurrentDownload) {
+                if(bar) bar.style.width = currentDownloadInfo.percent + '%';
+                if(text) text.innerText = '下載/轉檔中... ' + currentDownloadInfo.percent + '%';
+            } else {
+                if(bar) bar.style.width = '0%';
+                if(text) text.innerText = '等待下載中...';
+            }
+        } else {
+            if (track.style.pointerEvents === 'none') {
+                track.style.opacity = '1';
+                track.style.pointerEvents = 'auto';
+                track.style.filter = 'none';
+                const progressContainer = track.querySelector('.dl-progress-container');
+                if (progressContainer) progressContainer.remove();
+                const textContainer = track.querySelector('.dl-progress-text');
+                if (textContainer) textContainer.remove();
+            }
+        }
+    });
+}
+
+async function fetchState() {
             if (isFetchingState) return;
             isFetchingState = true;
             try {
@@ -1371,6 +1488,7 @@ function toggleStream() {
                 }
 
                 isPlaying = data.is_playing;
+                checkWakeLock(isPlaying);
                 elBtnPlay.innerHTML = data.is_playing ? ICONS.pause : ICONS.play;
                 
                 if (currentMode !== data.mode) {
@@ -1378,7 +1496,7 @@ function toggleStream() {
                     currentMode = data.mode;
                     elBtnMode.innerHTML = ICONS['mode_' + (data.mode || 0)] || ICONS.mode_0;
                     if(currentMode === 0) elBtnMode.style.color = "var(--text-sub)";
-                    else elBtnMode.style.color = "#fff";
+                    else elBtnMode.style.color = "var(--text-main)";
                     
                     if (!isInitial) {
                         const modeNames = ["循序播放", "單曲循環", "全部循環", "隨機播放"];
@@ -1747,7 +1865,18 @@ function toggleStream() {
 
         let expandedPlaylists = new Set();
 
-        async function fetchPlaylistsList() {
+        
+async function deleteTrack(index) {
+    try {
+        await fetch('/api/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cmd: 'remove_queue_indices', indices: [index] })
+        });
+        fetchPlaylist();
+    } catch (e) {}
+}
+async async function fetchPlaylistsList() {
             try {
                 const res = await fetch('/api/playlists', { cache: 'no-store' });
                 const data = await res.json();
@@ -1767,9 +1896,9 @@ function toggleStream() {
                             <div class="track-title-list">${p.name}</div>
                         </div>
                         <div style="display: flex; gap: 4px;">
-                            <button onclick="event.stopPropagation(); renamePlaylist(${p.id}, '${p.name.replace(/'/g, "\\'")}')" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">改名</button>
-                            <button onclick="event.stopPropagation(); openFsModal(${p.id})" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ 本機</button>
-                            <button onclick="event.stopPropagation(); openYtModal(${p.id})" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ YT</button>
+                            <button onclick="event.stopPropagation(); renamePlaylist(${p.id}, '${p.name.replace(/'/g, "\\'")}')" style="background: var(--text-main); color: var(--bg); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">改名</button>
+                            <button onclick="event.stopPropagation(); openFsModal(${p.id})" style="background: var(--text-main); color: var(--bg); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ 本機</button>
+                            <button onclick="event.stopPropagation(); openYtModal(${p.id})" style="background: var(--text-main); color: var(--bg); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">+ YT</button>
                             <button onclick="event.stopPropagation(); deletePlaylist(${p.id})" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">刪除</button>
                         </div>
                     `;
@@ -1781,7 +1910,18 @@ function toggleStream() {
             } catch (e) {}
         }
 
-        async function fetchPlaylist() {
+        
+async function deleteTrack(index) {
+    try {
+        await fetch('/api/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cmd: 'remove_queue_indices', indices: [index] })
+        });
+        fetchPlaylist();
+    } catch (e) {}
+}
+async function fetchPlaylist() {
             if (currentView !== 'queue') return;
             try {
                 const searchInput = document.getElementById('queue-search-input');
@@ -1805,28 +1945,78 @@ function toggleStream() {
                     const div = document.createElement('div');
                     div.className = 'track-item' + (t.index === data.current_index ? ' playing' : '');
                     if (isQueueSelectMode) div.style.cursor = 'default';
+                    div.style.padding = '0';
+                    div.style.position = 'relative';
+                    div.style.overflow = 'hidden';
+                    
                     div.innerHTML = `
-                        <div class="q-checkbox-container" style="display: ${isQueueSelectMode ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement)">
-                            <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
-                        </div>
-                        <div class="track-idx">${t.index + 1}</div>
-                        <div class="track-info-list">
-                            <div class="track-title-list">${t.title}</div>
-                            <div class="track-artist-list">${t.artist || '未知歌手'}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="font-size:12px; color:rgba(255,255,255,0.5)">${formatTime(t.duration)}</div>
-                            <button onclick="event.stopPropagation(); downloadTrack(${t.index});" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
-                            </button>
+                        <div class="swipe-actions" style="position:absolute; right:0; top:0; bottom:0; width: 70px; background: #ef4444; display: flex; align-items:center; justify-content:center; color:white; font-weight:bold; cursor:pointer;" onclick="event.stopPropagation(); deleteTrack(${t.index})">刪除</div>
+                        <div class="swipe-content" style="display:flex; width:100%; padding:12px 16px; background: var(--card-bg); transition: transform 0.2s; align-items: center; box-sizing:border-box;">
+                            <div class="q-checkbox-container" style="display: ${isQueueSelectMode ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement.parentElement)">
+                                <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
+                            </div>
+                            <div class="track-idx">${t.index + 1}</div>
+                            <div class="track-info-list" style="flex-grow:1; overflow:hidden;">
+                                <div class="track-title-list" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t.title}</div>
+                                <div class="track-artist-list">${t.artist || '未知歌手'}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="font-size:12px; color:rgba(255,255,255,0.5)">${formatTime(t.duration)}</div>
+                                <button onclick="event.stopPropagation(); downloadTrack(${t.index});" style="background:none; border:none; color:var(--accent); cursor:pointer; padding:4px;">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                                </button>
+                            </div>
                         </div>
                     `;
+                    
+                    const swipeContent = div.querySelector('.swipe-content');
+                    let startX = 0;
+                    let currentX = 0;
+                    let isDragging = false;
+
+                    div.addEventListener('touchstart', (e) => {
+                        if (isQueueSelectMode) return;
+                        startX = e.touches[0].clientX;
+                        swipeContent.style.transition = 'none';
+                        isDragging = true;
+                    }, {passive: true});
+
+                    div.addEventListener('touchmove', (e) => {
+                        if (isQueueSelectMode || !isDragging) return;
+                        const diffX = e.touches[0].clientX - startX;
+                        if (diffX < 0) { // moving left
+                            currentX = Math.max(diffX, -70);
+                            swipeContent.style.transform = `translateX(${currentX}px)`;
+                        } else if (diffX > 0 && currentX < 0) { // moving right to close
+                            currentX = Math.min(0, currentX + diffX);
+                            swipeContent.style.transform = `translateX(${currentX}px)`;
+                        }
+                    }, {passive: true});
+
+                    div.addEventListener('touchend', (e) => {
+                        if (isQueueSelectMode || !isDragging) return;
+                        isDragging = false;
+                        swipeContent.style.transition = 'transform 0.2s';
+                        if (currentX < -35) { // open fully
+                            currentX = -70;
+                        } else { // close
+                            currentX = 0;
+                        }
+                        swipeContent.style.transform = `translateX(${currentX}px)`;
+                    });
+                    
                     div.onclick = (e) => {
                         if (isQueueSelectMode) {
                             const cb = div.querySelector('.q-checkbox');
                             if (cb) cb.checked = !cb.checked;
                         } else {
-                            sendCommand('play_index', t.index);
+                            if (currentX === 0) {
+                                sendCommand('play_index', t.index);
+                            } else {
+                                // If swiped open, clicking it should probably just close it
+                                currentX = 0;
+                                swipeContent.style.transform = `translateX(0px)`;
+                            }
                         }
                     };
                     elQueueContent.appendChild(div);
@@ -2212,7 +2402,7 @@ function toggleStream() {
             } catch (e) { console.log(e); }
         }
         
-        async function updateAudioSettings() {
+        async async function updateAudioSettings() {
             const cf_enabled = document.getElementById('cf-enable').checked;
             const cf_duration = document.getElementById('cf-duration').value;
             const r128_enabled = document.getElementById('r128-enable').checked;
@@ -2386,7 +2576,7 @@ function toggleStream() {
             <div class="drawer-title">新增 YouTube</div>
             <button class="btn-close" onclick="closeYtModal()">✕</button>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <input type="text" id="yt-search-input" placeholder="搜尋或貼上網址..." style="flex-grow: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px;">
+                <input type="text" id="yt-search-input" placeholder="搜尋或貼上網址..." style="flex-grow: 1; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px; padding: 8px;">
             </div>
             <div style="display:flex; gap:10px; margin-bottom:10px;">
                 <button class="btn-top" onclick="searchYt()" style="flex:1;">搜尋</button>
