@@ -1951,7 +1951,7 @@ async function fetchPlaylist() {
                     
                     div.innerHTML = `
                         <div class="swipe-actions" style="position:absolute; right:0; top:0; bottom:0; width: 70px; background: #ef4444; display: flex; align-items:center; justify-content:center; color:white; font-weight:bold; cursor:pointer;" onclick="event.stopPropagation(); deleteTrack(${t.index})">刪除</div>
-                        <div class="swipe-content" style="display:flex; width:100%; padding:12px 16px; background: var(--card-bg); transition: transform 0.2s; align-items: center; box-sizing:border-box;">
+                        <div class="swipe-content" style="display:flex; width:100%; padding:12px 16px; background: var(--card-bg); position:relative; z-index:1; transition: transform 0.2s; align-items: center; box-sizing:border-box;">
                             <div class="q-checkbox-container" style="display: ${isQueueSelectMode ? 'flex' : 'none'}; align-items:center;" onclick="event.stopPropagation(); toggleTrackCheck(this.parentElement.parentElement)">
                                 <input type="checkbox" class="q-checkbox" value="${t.index}" style="margin: 0 10px; accent-color: var(--accent); width: 16px; height: 16px; pointer-events: none;">
                             </div>
