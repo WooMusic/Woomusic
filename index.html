@@ -746,7 +746,7 @@
 
     async function initPWA() {
         const urlParams = new URLSearchParams(window.location.search);
-        let deviceId = urlParams.get('id') || localStorage.getItem('wajiabar_device_id');
+        let deviceId = urlParams.get('id') || localStorage.getItem('wowmusic_device_id');
         
         // If we are not running on the local server or cloudflare directly, we are an external PWA
         const isExternal = window.location.protocol === 'file:' || 
@@ -759,7 +759,7 @@
                 deviceId = await showPairingModal();
                 if (deviceId) {
                     deviceId = deviceId.toUpperCase().trim();
-                    localStorage.setItem('wajiabar_device_id', deviceId);
+                    localStorage.setItem('wowmusic_device_id', deviceId);
                 }
             }
             if (deviceId) {
@@ -770,7 +770,7 @@
                         API_BASE = data.url;
                         console.log("Found backend:", API_BASE);
                     } else {
-                        localStorage.removeItem('wajiabar_device_id');
+                        localStorage.removeItem('wowmusic_device_id');
                         await showPairingError("找不到此機碼對應的主機\n請確認電腦端已開啟 WowMusic");
                         location.reload();
                     }
@@ -1228,7 +1228,7 @@ function toggleStream() {
                     navigator.mediaSession.playbackState = 'paused';
                     updateMediaSessionMetadata({
                         title: currentTrackTitle || "未知曲目",
-                        artist: document.getElementById('artist').innerText || "Wajiabar"
+                        artist: document.getElementById('artist').innerText || "WowMusic"
                     });
                 }
             }
@@ -1363,6 +1363,10 @@ function toggleStream() {
                         if (durLabel) durLabel.innerText = Math.round(data.cf_duration / 1000) + 's';
                     }
                     document.getElementById('r128-enable').checked = data.r128_enabled;
+                document.getElementById('preserve-enable').checked = data.preserve_enabled;
+                document.getElementById('auto-resume-enable').checked = data.auto_resume_enabled;
+                document.getElementById('sponsorblock-enable').checked = data.sponsorblock_enabled;
+                document.getElementById('enhance-enable').checked = data.audio_enhance_enabled;
                 }
 
                 if (data.queue_length !== currentQueueLength) {
@@ -1387,7 +1391,7 @@ function toggleStream() {
 
             } catch (e) {
                 document.getElementById("title").innerText = "連線失敗 (主機無回應)"; 
-                document.getElementById("artist").innerHTML = `<button onclick="localStorage.removeItem('wajiabar_device_id'); location.href=location.pathname;" style="padding:6px 12px;background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:5px;font-size:12px;">重新輸入配對碼</button>`;
+                document.getElementById("artist").innerHTML = `<button onclick="localStorage.removeItem('wowmusic_device_id'); location.href=location.pathname;" style="padding:6px 12px;background:var(--accent,#38bdf8);color:#000;border:none;border-radius:12px;font-weight:bold;cursor:pointer;margin-top:5px;font-size:12px;">重新輸入配對碼</button>`;
                 console.error("Fetch state error:", e);
             } finally {
                 isFetchingState = false;
@@ -2149,6 +2153,10 @@ function toggleStream() {
                 document.getElementById('cf-enable').checked = data.cf_enabled;
                 document.getElementById('cf-duration').value = Math.round(data.cf_duration / 1000);
                 document.getElementById('r128-enable').checked = data.r128_enabled;
+                document.getElementById('preserve-enable').checked = data.preserve_enabled;
+                document.getElementById('auto-resume-enable').checked = data.auto_resume_enabled;
+                document.getElementById('sponsorblock-enable').checked = data.sponsorblock_enabled;
+                document.getElementById('enhance-enable').checked = data.audio_enhance_enabled;
             } catch (e) { console.log(e); }
         }
         
@@ -2162,7 +2170,11 @@ function toggleStream() {
                 body: JSON.stringify({ 
                     cf_enabled: cf_enabled, 
                     cf_duration: parseInt(cf_duration) * 1000,
-                    r128_enabled: r128_enabled
+                    r128_enabled: r128_enabled,
+                    preserve_enabled: document.getElementById('preserve-enable').checked,
+                    auto_resume_enabled: document.getElementById('auto-resume-enable').checked,
+                    sponsorblock_enabled: document.getElementById('sponsorblock-enable').checked,
+                    audio_enhance_enabled: document.getElementById('enhance-enable').checked
                 })
             });
         }
