@@ -887,119 +887,118 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
 
     <!-- VIEW 4: SETTINGS -->
     <div id="view-settings" class="view" style="padding: env(safe-area-inset-top) 20px 20px;">
-        <div style="padding: 20px 0; font-size: 24px; font-weight: bold;">設定</div>
-        
-        <div class="settings-section">
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">介面主題</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">切換明亮與闇黑模式</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
-                    <span class="apple-slider"></span>
-                </label>
+    <div style="padding: 20px 0; font-size: 24px; font-weight: bold;">設定</div>
+    
+    <div class="settings-section">
+        <div style="padding-bottom: 10px; font-size: 16px; font-weight: bold; color: var(--accent);">串流設定</div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">介面主題</div>
+                <div style="font-size: 13px; color: var(--text-sub);">切換明亮與深色模式</div>
             </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                <span class="apple-slider"></span>
+            </label>
         </div>
-        <div class="settings-section">
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">睡眠定時</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">時間到將自動暫停播放</div>
-                    <div style="font-size: 13px; color: var(--accent); margin-top: 4px;" id="sleep-status">關閉</div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <select id="sleep-select" onchange="setSleepTimer(parseInt(this.value))" style="background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px;">
-                        <option value="0">關閉</option>
-                        <option value="5">5 分鐘 (測試用)</option>
-                        <option value="15">15 分鐘</option>
-                        <option value="30">30 分鐘</option>
-                        <option value="45">45 分鐘</option>
-                        <option value="60">60 分鐘</option>
-                        <option value="90">90 分鐘</option>
-                        <option value="120">120 分鐘</option>
-                    </select>
-                </div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">睡眠定時</div>
+                <div style="font-size: 13px; color: var(--text-sub);">倒數結束後自動暫停播放</div>
+                <div style="font-size: 13px; color: var(--accent); margin-top: 4px;" id="sleep-status">關閉</div>
             </div>
-        </div>
-        <div class="settings-section">
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">無縫混音 (Crossfade)</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">歌曲切換時自動淡入淡出 (僅限遙控電腦有效)</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="cf-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
-            </div>
-            <div class="settings-row">
-                <div style="font-size: 14px; color: var(--text-main);">混音秒數</div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <input type="number" id="cf-duration" onchange="updateAudioSettings()" value="5" min="1" max="20" style="width: 48px; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px; text-align: center;">
-                    <span style="font-size: 14px; color: var(--text-sub);">秒</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">R128 智慧音量平衡</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">自動統一所有歌曲的音量大小 (僅限遙控電腦有效)</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="r128-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">保留下載檔案 (不隨清單刪除)</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">清單刪除時不連帶刪除實體檔案</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="preserve-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
-            </div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">開啟程式續接下載</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">啟動程式時自動將未完成項目加入隊列</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="auto-resume-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
-            </div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">剪除廢話 (下載前須開啟)</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">下載 YouTube 音樂時自動剪除 MV 前奏</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="sponsorblock-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
-            </div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight: bold;">音質強化 (下載前須開啟)</div>
-                    <div style="font-size: 13px; color: var(--text-sub);">下載前使用 DSP 增強動態與 EQ</div>
-                </div>
-                <label class="apple-switch" style="margin: 0;">
-                    <input type="checkbox" id="enhance-enable" onchange="updateAudioSettings()">
-                    <span class="apple-slider"></span>
-                </label>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <select id="sleep-select" onchange="setSleepTimer(parseInt(this.value))" style="background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px;">
+                    <option value="0">關閉</option>
+                    <option value="5">5 分鐘 (測試用)</option>
+                    <option value="15">15 分鐘</option>
+                    <option value="30">30 分鐘</option>
+                    <option value="45">45 分鐘</option>
+                    <option value="60">60 分鐘</option>
+                    <option value="90">90 分鐘</option>
+                    <option value="120">120 分鐘</option>
+                </select>
             </div>
         </div>
     </div>
 
-        <!-- BOTTOM NAV -->
+    <div class="settings-section">
+        <div style="padding-bottom: 10px; font-size: 16px; font-weight: bold; color: var(--accent);">遙控器設定</div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">無縫混音 (Crossfade)</div>
+                <div style="font-size: 13px; color: var(--text-sub);">歌曲切換時自動淡入淡出 (僅限遙控電腦有效)</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="cf-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+        <div class="settings-row">
+            <div style="font-size: 14px; color: var(--text-main);">混音秒數</div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="number" id="cf-duration" onchange="updateAudioSettings()" value="5" min="1" max="20" style="width: 48px; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; padding: 4px; text-align: center;">
+                <span style="font-size: 14px; color: var(--text-sub);">秒</span>
+            </div>
+        </div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">R128 智慧響度平衡</div>
+                <div style="font-size: 13px; color: var(--text-sub);">系統自動調整所有歌曲音量大小 (僅限遙控電腦有效)</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="r128-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <div style="padding-bottom: 10px; font-size: 16px; font-weight: bold; color: var(--accent);">YT下載設定</div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">保留下載檔案 (不隨清單刪除)</div>
+                <div style="font-size: 13px; color: var(--text-sub);">清單刪除時不連帶刪除實體檔案</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="preserve-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">背景程式續接下載</div>
+                <div style="font-size: 13px; color: var(--text-sub);">背景程式啟動時自動續傳未完成任務</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="auto-resume-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">跳過廢話 (下載時生效)</div>
+                <div style="font-size: 13px; color: var(--text-sub);">下載 YouTube 音樂時自動剪去MV前後廢話片段</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="sponsorblock-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+        <div class="settings-row">
+            <div>
+                <div style="font-weight: bold;">音質強化 (下載時生效)</div>
+                <div style="font-size: 13px; color: var(--text-sub);">下載時使用 DSP 增強音質及EQ</div>
+            </div>
+            <label class="apple-switch" style="margin: 0;">
+                <input type="checkbox" id="enhance-enable" onchange="updateAudioSettings()">
+                <span class="apple-slider"></span>
+            </label>
+        </div>
+    </div>
+</div>
+
+    <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
         <div class="nav-item active" onclick="switchView('player')">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
