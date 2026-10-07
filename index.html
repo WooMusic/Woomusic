@@ -954,52 +954,52 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
                 </label>
             </div>
         </div>
+
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">保留下載檔案 (不隨清單刪除)</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">清單刪除時不連帶刪除實體檔案</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="preserve-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">開啟程式續接下載</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">啟動程式時自動將未完成項目加入隊列</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="auto-resume-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">剪除廢話 (下載前須開啟)</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">下載 YouTube 音樂時自動剪除 MV 前奏</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="sponsorblock-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight: bold;">音質強化 (下載前須開啟)</div>
+                    <div style="font-size: 13px; color: var(--text-sub);">下載前使用 DSP 增強動態與 EQ</div>
+                </div>
+                <label class="apple-switch" style="margin: 0;">
+                    <input type="checkbox" id="enhance-enable" onchange="updateAudioSettings()">
+                    <span class="apple-slider"></span>
+                </label>
+            </div>
+        </div>
     </div>
 
-    <div class="settings-section">
-    <div class="settings-row">
-        <div>
-            <div style="font-weight: bold;">保留下載檔案 (不隨清單刪除)</div>
-            <div style="font-size: 13px; color: var(--text-sub);">清單刪除時不連帶刪除實體檔案</div>
-        </div>
-        <label class="apple-switch" style="margin: 0;">
-            <input type="checkbox" id="preserve-enable" onchange="updateAudioSettings()">
-            <span class="apple-slider"></span>
-        </label>
-    </div>
-    <div class="settings-row">
-        <div>
-            <div style="font-weight: bold;">開啟程式續接下載</div>
-            <div style="font-size: 13px; color: var(--text-sub);">啟動程式時自動將未完成項目加入隊列</div>
-        </div>
-        <label class="apple-switch" style="margin: 0;">
-            <input type="checkbox" id="auto-resume-enable" onchange="updateAudioSettings()">
-            <span class="apple-slider"></span>
-        </label>
-    </div>
-    <div class="settings-row">
-        <div>
-            <div style="font-weight: bold;">剪除廢話 (下載前須開啟)</div>
-            <div style="font-size: 13px; color: var(--text-sub);">下載 YouTube 音樂時自動剪除 MV 前奏</div>
-        </div>
-        <label class="apple-switch" style="margin: 0;">
-            <input type="checkbox" id="sponsorblock-enable" onchange="updateAudioSettings()">
-            <span class="apple-slider"></span>
-        </label>
-    </div>
-    <div class="settings-row">
-        <div>
-            <div style="font-weight: bold;">音質強化 (下載前須開啟)</div>
-            <div style="font-size: 13px; color: var(--text-sub);">下載前使用 DSP 增強動態與 EQ</div>
-        </div>
-        <label class="apple-switch" style="margin: 0;">
-            <input type="checkbox" id="enhance-enable" onchange="updateAudioSettings()">
-            <span class="apple-slider"></span>
-        </label>
-    </div>
-</div>
-
-    <!-- BOTTOM NAV -->
+        <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
         <div class="nav-item active" onclick="switchView('player')">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
