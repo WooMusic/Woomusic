@@ -1871,7 +1871,7 @@ async function deleteTrack(index) {
         await fetch('/api/control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cmd: 'remove_queue_indices', indices: [index] })
+            body: JSON.stringify({ cmd: 'remove_queue_indices', value: [index] })
         });
         fetchPlaylist();
     } catch (e) {}
@@ -1916,7 +1916,7 @@ async function deleteTrack(index) {
         await fetch('/api/control', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cmd: 'remove_queue_indices', indices: [index] })
+            body: JSON.stringify({ cmd: 'remove_queue_indices', value: [index] })
         });
         fetchPlaylist();
     } catch (e) {}
