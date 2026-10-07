@@ -1876,7 +1876,7 @@ async function deleteTrack(index) {
         fetchPlaylist();
     } catch (e) {}
 }
-async async function fetchPlaylistsList() {
+async function fetchPlaylistsList() {
             try {
                 const res = await fetch('/api/playlists', { cache: 'no-store' });
                 const data = await res.json();
@@ -2402,7 +2402,7 @@ async function fetchPlaylist() {
             } catch (e) { console.log(e); }
         }
         
-        async async function updateAudioSettings() {
+        async function updateAudioSettings() {
             const cf_enabled = document.getElementById('cf-enable').checked;
             const cf_duration = document.getElementById('cf-duration').value;
             const r128_enabled = document.getElementById('r128-enable').checked;
